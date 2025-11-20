@@ -7,12 +7,12 @@ Below is a detailed **implementation plan** for a simple MVP (Minimum Viable Pro
 ## 1. **Project Overview**
 
 **Goal:**  
-Build an MVP agent that processes articles or video transcripts, analyzes claims across multiple perspectives, detects types of bias and potential deception, and outputs a rich "truth profile" per claim.
+Build an MVP agent that processes YouTube video transcripts, analyzes claims across multiple perspectives, detects types of bias and potential deception, and outputs a rich "truth profile" per claim.
   
 ## 2. **System Architecture**
 
 - **Input:**  
-  - Article text, web URL, or video transcript (plain text)
+  - YouTube Video URL (to fetch transcript) or raw transcript text
   
 - **Processing Pipeline:**  
   1. **Claim Extraction**
@@ -57,7 +57,7 @@ Define 2–3 initial perspectives:
     ```
 
 ### 3.5. **Bias and Deception Detection**
-- For each claim/article:
+- For each claim/video:
   - Use prompt-based or open-source ML models for:
     - Framing/loaded language
     - Sourcing bias
@@ -78,7 +78,7 @@ Define 2–3 initial perspectives:
 - MVP UI:  
   - Simple CLI, notebook, or single-page web interface (React/Vue/Svelte) for uploading/entering text and viewing results.
 - API:  
-  - REST endpoint to POST article text/URL and return truth profiles as JSON.
+  - REST endpoint to POST YouTube URL and return truth profiles as JSON.
 
 ***
 
@@ -86,7 +86,7 @@ Define 2–3 initial perspectives:
 
 - **Backend:** Python (FastAPI, Flask) or Node.js (Express)
 - **Claim Extraction:** Regular expressions, spaCy, or LLM API
-- **RAG:** Bing Web Search API, NewsAPI, or SerpAPI; source classifier for perspective tagging
+- **RAG:** Google Custom Search JSON API; source classifier for perspective tagging
 - **LLMs:** OpenAI GPT-3.5/4, HuggingFace models (for local/dev work)
 - **Bias detection:** Prompt-based GPT, `transformers` for sentiment/stance analysis
 - **Frontend:** Streamlit (fastest), or basic React app
@@ -120,7 +120,7 @@ Define 2–3 initial perspectives:
 - Python 3.10+  
 - OpenAI API key (or alternative LLM provider)  
 - Web search API key(s)  
-- `requests`, `fastapi`, `spacy`, `openai`, `transformers`, `streamlit` (as required)  
+- `requests`, `fastapi`, `spacy`, `openai`, `transformers`, `streamlit`, `youtube-transcript-api` (as required)  
 
 ***
 
