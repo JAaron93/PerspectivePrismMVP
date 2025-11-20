@@ -1,53 +1,112 @@
 # Perspective Prism MVP
 
-An agent that processes articles or video transcripts, analyzes claims across multiple perspectives, detects types of bias and potential deception, and outputs a rich "truth profile" per claim.
+An advanced AI agent that processes YouTube video transcripts to analyze claims across multiple perspectives, detect bias and potential deception, and output a rich "truth profile" per claim.
 
-## Project Structure
+## 🚀 Features
 
-- `backend/`: FastAPI application for processing and analysis.
-- `frontend/`: React + TypeScript application for the user interface.
-- `implementation_plan.md`: Detailed plan for the MVP.
+- **Claim Extraction**: Automatically fetches and parses YouTube transcripts to identify key claims.
+- **Multi-Perspective Analysis**: Evaluates claims against "Mainstream", "Scientific", and "Conspiratorial" viewpoints using Google Custom Search.
+- **Bias & Deception Detection**: Uses LLMs to identify logical fallacies, emotional manipulation, and political bias.
+- **Truth Profiling**: Generates a comprehensive report with confidence scores and supporting evidence.
+- **🛡️ Robust Security**: Built-in input sanitization to prevent prompt injection attacks and ensure safe LLM interactions.
 
-## Setup
+## 🛠️ Tech Stack
+
+- **Backend**: FastAPI, Python 3.13, OpenAI API, Google Custom Search API
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS
+- **Security**: Custom input sanitizer with pattern detection and strict length enforcement
+
+## 📋 Prerequisites
+
+- Python 3.10+
+- Node.js 16+
+- OpenAI API Key
+- Google Custom Search JSON API Key & Search Engine ID
+
+## ⚙️ Setup & Installation
 
 ### Backend
 
-1. Navigate to `backend/`:
+1. Navigate to the backend directory:
    ```bash
    cd backend
    ```
-2. Create a virtual environment:
+
+2. Create and activate a virtual environment:
    ```bash
    python3 -m venv venv
    source venv/bin/activate
    ```
+
 3. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-4. Run the server:
+
+4. Configure environment variables:
+   Copy `.env.example` to `.env` and fill in your keys:
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Required variables:
+   - `OPENAI_API_KEY`: Your OpenAI API key
+   - `GOOGLE_API_KEY`: Google Custom Search JSON API key
+   - `GOOGLE_CSE_ID`: Google Custom Search Engine ID
+   - `BACKEND_CORS_ORIGINS`: List of allowed frontend origins (e.g., `["http://localhost:5173"]`)
+
+5. Run the server:
    ```bash
    uvicorn app.main:app --reload
    ```
+   The API will be available at `http://localhost:8000`.
 
 ### Frontend
 
-1. Navigate to `frontend/`:
+1. Navigate to the frontend directory:
    ```bash
    cd frontend
    ```
+
 2. Install dependencies:
    ```bash
    npm install
    ```
-3. Run the development server:
+
+3. Configure environment variables:
+   Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+   Ensure `VITE_API_URL` matches your backend URL (default: `http://localhost:8000`).
+
+4. Run the development server:
    ```bash
    npm run dev
    ```
+   The app will be available at `http://localhost:5173`.
 
-## Configuration
+## 🧪 Testing
 
-Ensure you have a `.env` file in the root (or linked in `backend/`) with:
+The backend includes a comprehensive test suite, particularly for the security components.
+
+To run the tests:
+
+```bash
+cd backend
+# Run all tests
+pytest
+
+# Run specific security tests
+pytest tests/test_input_sanitizer.py
 ```
-OPENAI_API_KEY=your_key_here
-```
+
+## 🔒 Security
+
+This project implements strict input sanitization to protect against Large Language Model (LLM) prompt injection attacks.
+
+- **Pattern Matching**: Blocks known injection patterns (e.g., "Ignore previous instructions").
+- **Delimiters**: Uses strict delimiters to separate user data from system instructions.
+- **Validation**: Enforces length limits and character whitelisting.
+
+See `backend/app/utils/input_sanitizer.py` for implementation details.

@@ -5,16 +5,18 @@ This script shows how the sanitization protects against injection attempts.
 Run this script to see sanitization in action.
 """
 
+from typing import Any, Callable
+
 from app.utils.input_sanitizer import (
     sanitize_claim_text,
     sanitize_perspective_value,
     SanitizationError,
     wrap_user_data,
 )
-import sys
 
 
-def test_case(description: str, test_func):
+
+def test_case(description: str, test_func: Callable[..., Any]):
     """Helper to run and display test cases."""
     print(f"\n{'='*70}")
     print(f"TEST: {description}")
@@ -93,14 +95,16 @@ def main():
     )
     
     # Test 9: Wrapped user data
-    print("\n" + "="*70)
-    print("DEMONSTRATING DELIMITED USER DATA SECTIONS")
-    print("="*70)
-    safe_claim = sanitize_claim_text("The Earth orbits the Sun")
-    wrapped = wrap_user_data(safe_claim, "CLAIM")
-    print("\nWrapped output:")
-    print(wrapped)
-    print()
+    def test_wrapped_data():
+        safe_claim = sanitize_claim_text("The Earth orbits the Sun")
+        wrapped = wrap_user_data(safe_claim, "CLAIM")
+        return wrapped
+    
+    test_case(
+        "Wrapped user data with delimiters",
+        test_wrapped_data
+    )
+
     
     # Test 10: Multiple injection patterns
     test_case(

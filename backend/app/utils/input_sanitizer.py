@@ -27,10 +27,10 @@ SUSPICIOUS_PATTERNS = [
     r'user\s*:',
     r'<\|im_start\|>',
     r'<\|im_end\|>',
-    r'\[INST\]',
-    r'\[/INST\]',
-    r'###\s*Instruction',
-    r'###\s*Response',
+    r'\[inst\]',
+    r'\[/inst\]',
+    r'###\s*instruction',
+    r'###\s*response',
     r'```\s*system',
     r'forget\s+(everything|all|previous)',
     r'you\s+are\s+now',
@@ -60,7 +60,7 @@ def contains_suspicious_patterns(text: str) -> bool:
     """Check if text contains patterns commonly used in injection attacks."""
     text_lower = text.lower()
     for pattern in SUSPICIOUS_PATTERNS:
-        if re.search(pattern, text_lower, re.IGNORECASE):
+        if re.search(pattern, text_lower):
             return True
     return False
 
@@ -138,11 +138,11 @@ def sanitize_input(
             f"{field_name} contains patterns that may indicate a prompt injection attempt"
         )
     
-    # Truncate if needed
-    text = truncate_text(text, max_length)
-    
     # Escape special characters
     text = escape_special_characters(text)
+    
+    # Truncate if needed (after escaping to ensure final length constraint)
+    text = truncate_text(text, max_length)
     
     return text
 

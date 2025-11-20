@@ -24,39 +24,25 @@ class TestAnalysisServiceInitialization:
             assert service.client is not None
             assert service.model == "gpt-3.5-turbo"
     
-    def test_initialization_with_empty_api_key(self):
-        """Should raise ValueError with empty API key."""
-        with patch('app.services.analysis_service.settings') as mock_settings:
-            mock_settings.OPENAI_API_KEY = ""
-            mock_settings.OPENAI_MODEL = "gpt-3.5-turbo"
-            
-            with pytest.raises(ValueError) as exc_info:
-                AnalysisService()
-            
-            assert "OPENAI_API_KEY is not configured" in str(exc_info.value)
-            assert ".env file" in str(exc_info.value)
     
-    def test_initialization_with_whitespace_only_api_key(self):
-        """Should raise ValueError with whitespace-only API key."""
+    @pytest.mark.parametrize("api_key,expected_substrings", [
+        ("", ["OPENAI_API_KEY is not configured", ".env file"]),
+        ("   \n\t   ", ["OPENAI_API_KEY is not configured"]),
+        (None, ["OPENAI_API_KEY is not configured"]),
+    ])
+    def test_initialization_with_invalid_api_key(self, api_key, expected_substrings):
+        """Should raise ValueError with invalid API keys (empty, whitespace-only, or None)."""
         with patch('app.services.analysis_service.settings') as mock_settings:
-            mock_settings.OPENAI_API_KEY = "   \n\t   "
+            mock_settings.OPENAI_API_KEY = api_key
             mock_settings.OPENAI_MODEL = "gpt-3.5-turbo"
             
             with pytest.raises(ValueError) as exc_info:
                 AnalysisService()
             
-            assert "OPENAI_API_KEY is not configured" in str(exc_info.value)
+            error_message = str(exc_info.value)
+            for expected_substring in expected_substrings:
+                assert expected_substring in error_message
     
-    def test_initialization_with_none_api_key(self):
-        """Should raise ValueError with None API key."""
-        with patch('app.services.analysis_service.settings') as mock_settings:
-            mock_settings.OPENAI_API_KEY = None
-            mock_settings.OPENAI_MODEL = "gpt-3.5-turbo"
-            
-            with pytest.raises(ValueError) as exc_info:
-                AnalysisService()
-            
-            assert "OPENAI_API_KEY is not configured" in str(exc_info.value)
     
     def test_uses_custom_model_from_settings(self):
         """Should use custom model from settings when configured."""

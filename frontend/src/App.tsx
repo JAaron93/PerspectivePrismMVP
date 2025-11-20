@@ -49,7 +49,7 @@ function App() {
     setResults(null)
 
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000) // 60s timeout
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -61,7 +61,6 @@ function App() {
         body: JSON.stringify({ url }),
         signal: controller.signal,
       })
-      clearTimeout(timeoutId)
 
       if (!response.ok) {
         let errorMessage = 'Failed to analyze video'

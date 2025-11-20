@@ -18,7 +18,7 @@ class ClaimExtractor:
         if parsed_url.hostname in ('www.youtube.com', 'youtube.com'):
             if parsed_url.path == '/watch':
                 p = parse_qs(parsed_url.query)
-                if 'v' not in p or not p['v']:
+                if 'v' not in p or not p['v'] or not p['v'][0]:
                     raise ValueError("Invalid YouTube URL")
                 return p['v'][0]
             if parsed_url.path[:7] == '/embed/':

@@ -13,6 +13,18 @@ class EvidenceRetriever:
         self.cse_id = settings.GOOGLE_CSE_ID
         self.base_url = "https://www.googleapis.com/customsearch/v1"
         
+        # Validate credentials at initialization
+        if not self.api_key or not self.cse_id:
+            missing = []
+            if not self.api_key:
+                missing.append("GOOGLE_API_KEY")
+            if not self.cse_id:
+                missing.append("GOOGLE_CSE_ID")
+            
+            error_msg = f"Missing required credentials: {', '.join(missing)}. Please configure them in your .env file."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        
         # Pre-defined domains for perspectives (MVP list)
         self.perspective_domains = {
             PerspectiveType.SCIENTIFIC: [
@@ -37,17 +49,6 @@ class EvidenceRetriever:
         """
         Searches Google for the query, filtered by the perspective's domains.
         """
-        if not self.api_key or not self.cse_id:
-            missing = []
-            if not self.api_key:
-                missing.append("GOOGLE_API_KEY")
-            if not self.cse_id:
-                missing.append("GOOGLE_CSE_ID")
-            
-            error_msg = f"Missing required credentials: {', '.join(missing)}. Please configure them in your .env file."
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-
         # Construct query with site filters
         domains = self.perspective_domains.get(perspective, [])
         if not domains:
@@ -66,7 +67,7 @@ class EvidenceRetriever:
         }
         
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=settings.GOOGLE_SEARCH_TIMEOUT) as client:
                 response = await client.get(self.base_url, params=params)
                 response.raise_for_status()
                 data = response.json()
@@ -116,6 +117,7 @@ class EvidenceRetriever:
     async def retrieve_evidence(self, claim: Claim, perspectives: List[PerspectiveType]) -> Dict[PerspectiveType, List[Evidence]]:
         """
         Retrieves evidence for a claim across multiple perspectives concurrently.
+        Rate-limited to prevent API throttling.
         """
         # Use the claim text as the query. 
         # In a real app, we might want to summarize or extract keywords from the claim text first.
@@ -125,8 +127,16 @@ class EvidenceRetriever:
         if len(query) > 100:
             query = query[:100]
         
-        # Build coroutines for concurrent execution
-        search_tasks = [self.search_google(query, perspective) for perspective in perspectives]
+        # Create semaphore for rate limiting
+        semaphore = asyncio.Semaphore(settings.GOOGLE_SEARCH_MAX_CONCURRENT)
+        
+        async def rate_limited_search(perspective: PerspectiveType) -> List[Evidence]:
+            """Wrapper to rate-limit search_google calls."""
+            async with semaphore:
+                return await self.search_google(query, perspective)
+        
+        # Build coroutines for concurrent execution with rate limiting
+        search_tasks = [rate_limited_search(perspective) for perspective in perspectives]
         
         # Execute all searches concurrently, capturing exceptions per-task
         search_results = await asyncio.gather(*search_tasks, return_exceptions=True)

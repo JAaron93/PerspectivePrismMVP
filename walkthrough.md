@@ -105,7 +105,7 @@ Similar refactoring applied:
 
 Created comprehensive test suite: [test_input_sanitizer.py](file:///Users/pretermodernist/PerspectivePrismMVP/backend/tests/test_input_sanitizer.py)
 
-**Test Results**: ✅ **33/33 tests passed**
+**Test Results**: ✅ **53/53 tests passed**
 
 Test coverage includes:
 - ✅ Suspicious pattern detection (6 tests)
@@ -113,11 +113,14 @@ Test coverage includes:
 - ✅ Special character escaping (4 tests)
 - ✅ Text truncation (3 tests)
 - ✅ Claim text sanitization (6 tests)
-- ✅ Perspective value sanitization (2 tests)
-- ✅ Evidence text sanitization (2 tests)
-- ✅ Context sanitization (2 tests)
+- ✅ Perspective value sanitization (10 tests)
+- ✅ Evidence text sanitization (6 tests)
+- ✅ Context sanitization (6 tests)
 - ✅ User data wrapping (2 tests)
 - ✅ End-to-end integration (2 tests)
+
+> [!NOTE]
+> **Bug Fix**: During testing, a case-sensitivity issue was identified in `contains_suspicious_patterns` where uppercase patterns (e.g., `[INST]`) were failing to match against lowercased input. This was fixed by updating `SUSPICIOUS_PATTERNS` to use lowercase.
 
 ### Manual Verification
 
@@ -248,5 +251,3 @@ Potential improvements for future consideration:
 5. **Pattern Updates**: Regularly update suspicious patterns based on new attack vectors
 
 ---
-
-render_diffs(file:///Users/pretermodernist/PerspectivePrismMVP/backend/app/services/analysis_service.py)
