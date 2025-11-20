@@ -48,26 +48,43 @@ function App() {
     setError(null)
     setResults(null)
 
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout
+
     try {
-      const response = await fetch('http://localhost:8000/analyze', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ url }),
+        signal: controller.signal,
       })
+      clearTimeout(timeoutId)
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to analyze video')
+        let errorMessage = 'Failed to analyze video'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.detail || errorMessage
+        } catch {
+          // Response is not JSON, use default message
+        }
+        throw new Error(errorMessage)
       }
 
       const data: AnalysisResponse = await response.json()
       setResults(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Request timed out. Please try again.')
+      } else {
+        setError(err instanceof Error ? err.message : 'An error occurred')
+      }
     } finally {
       setLoading(false)
+      clearTimeout(timeoutId) // Ensure timeout is cleared in case of error
     }
   }
 
@@ -158,8 +175,8 @@ function App() {
               <div className="perspectives-section">
                 <h3>Perspective Analysis</h3>
                 <div className="perspectives-grid">
-                  {profile.perspectives.map((perspective) => (
-                    <div key={perspective.perspective} className="perspective-card">
+                  {profile.perspectives.map((perspective, perspectiveIndex) => (
+                    <div key={`${perspective.perspective}-${perspectiveIndex}`} className="perspective-card">
                       <div className="perspective-header">
                         <span className="perspective-name">{perspective.perspective}</span>
                         <span className={getStanceClass(perspective.stance)}>

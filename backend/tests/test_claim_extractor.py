@@ -1,35 +1,25 @@
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from app.services.claim_extractor import ClaimExtractor
 
 def test_extraction():
     extractor = ClaimExtractor()
-    # Using a TED talk or similar stable video with transcript
-    # "The danger of a single story | Chimamanda Ngozi Adichie"
-    video_url = "https://www.youtube.com/watch?v=D9Ihs241zeg" 
+    video_url = "https://www.youtube.com/watch?v=D9Ihs241zeg"
     
-    print(f"Testing with URL: {video_url}")
+    video_id = extractor.extract_video_id(video_url)
+    assert video_id, "Video ID extraction failed"
     
-    try:
-        video_id = extractor.extract_video_id(video_url)
-        print(f"Extracted Video ID: {video_id}")
-        
-        transcript = extractor.get_transcript(video_id)
-        print(f"Fetched Transcript with {len(transcript.segments)} segments")
-        print(f"Full text length: {len(transcript.full_text)} chars")
-        
-        claims = extractor.extract_claims(transcript)
-        print(f"Extracted {len(claims)} claims (chunks)")
-        
-        if claims:
-            print("\nSample Claim 1:")
-            print(f"Text: {claims[0].text}")
-            print(f"Time: {claims[0].timestamp_start} - {claims[0].timestamp_end}")
-            
-    except Exception as e:
-        print(f"Error: {e}")
+    transcript = extractor.get_transcript(video_id)
+    assert transcript is not None, "Transcript retrieval failed"
+    assert len(transcript.segments) > 0, "Transcript should have segments"
+    assert len(transcript.full_text) > 0, "Transcript text should not be empty"
+    
+    claims = extractor.extract_claims(transcript)
+    assert isinstance(claims, list), "Claims should be a list"
+    assert len(claims) > 0, "Should extract at least one claim"
+    
+    # Validate first claim structure
+    first_claim = claims[0]
+    assert hasattr(first_claim, "text"), "Claim should have text attribute"
+    assert first_claim.text, "Claim text should not be empty"
 
 if __name__ == "__main__":
     test_extraction()

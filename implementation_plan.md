@@ -87,6 +87,7 @@ Define 2–3 initial perspectives:
 - **Backend:** Python (FastAPI, Flask) or Node.js (Express)
 - **Claim Extraction:** Regular expressions, spaCy, or LLM API
 - **RAG:** Google Custom Search JSON API; source classifier for perspective tagging
+  - **Client:** `httpx` (lightweight) or `google-api-python-client` (official)
 - **LLMs:** OpenAI GPT-3.5/4, HuggingFace models (for local/dev work)
 - **Bias detection:** Prompt-based GPT, `transformers` for sentiment/stance analysis
 - **Frontend:** Streamlit (fastest), or basic React app
@@ -120,7 +121,21 @@ Define 2–3 initial perspectives:
 - Python 3.10+  
 - OpenAI API key (or alternative LLM provider)  
 - Web search API key(s)  
-- `requests`, `fastapi`, `spacy`, `openai`, `transformers`, `streamlit`, `youtube-transcript-api` (as required)  
+- `requests` or `httpx` (recommended), `fastapi`, `spacy`, `openai`, `transformers`, `streamlit`, `youtube-transcript-api` (as required)
+- **Google Custom Search API Setup:**
+  1. **Enable API:** Go to [Google Cloud Console](https://console.cloud.google.com/), create a project, and enable the "Custom Search API".
+  2. **Create API Key:** In "Credentials", create an API Key.
+  3. **Create Search Engine:** Go to [Programmable Search Engine](https://programmablesearchengine.google.com/), create a new search engine.
+     - Select "Search the entire web" (or specific sites if preferred).
+     - **Get Search Engine ID (cx):** Copy the "Search engine ID" from the overview page.
+  4. **Environment Variables:**
+     ```bash
+     export GOOGLE_API_KEY="your_api_key_here"
+     export GOOGLE_CSE_ID="your_search_engine_id_here"
+     ```
+  5. **Quotas & Billing:** The free tier allows 100 queries/day. Enable billing for higher quotas if needed.
+  > [!TIP]
+  > If you encounter 429 (Quota Exceeded) errors, check your usage in the Cloud Console.  
 
 ***
 

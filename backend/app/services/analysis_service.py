@@ -1,13 +1,34 @@
 from openai import AsyncOpenAI
 from typing import List, Dict
 import json
+import logging
 from app.core.config import settings
 from app.models.schemas import Claim, Evidence, PerspectiveType, PerspectiveAnalysis, BiasAnalysis
+from app.utils.input_sanitizer import (
+    sanitize_claim_text,
+    sanitize_perspective_value,
+    sanitize_evidence_text,
+    sanitize_context,
+    wrap_user_data,
+    SanitizationError
+)
+
+logger = logging.getLogger(__name__)
 
 class AnalysisService:
     def __init__(self):
+        # Validate that OpenAI API key is present and non-empty
+        if not settings.OPENAI_API_KEY or settings.OPENAI_API_KEY.strip() == "":
+            raise ValueError(
+                "OPENAI_API_KEY is not configured. Please set it in your .env file. "
+                "Example: OPENAI_API_KEY=sk-..."
+            )
+        
+        # Initialize client only after validation
         self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-        self.model = "gpt-3.5-turbo" # Or gpt-4o if available/preferred
+        
+        # Use model from settings (with sensible default in config.py)
+        self.model = settings.OPENAI_MODEL
 
     async def analyze_perspective(self, claim: Claim, perspective: PerspectiveType, evidence_list: List[Evidence]) -> PerspectiveAnalysis:
         """
@@ -21,26 +42,54 @@ class AnalysisService:
                 explanation="No evidence found from this perspective.",
                 evidence=[]
             )
+        try:
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"},
+                timeout=30.0
+            )
+            
+            if not response.choices:
+                raise ValueError("OpenAI returned empty choices")
+            
+            content = response.choices[0].message.content
+            if not content:
+                raise ValueError("OpenAI returned empty content")
+            
+            result = json.loads(content)
+            
+        except SanitizationError as e:
+            logger.error("Sanitization error in perspective analysis for %s: %s", perspective.value, e)
+            return PerspectiveAnalysis(
+                perspective=perspective,
+                stance="Error",
+                confidence=0.0,
+                explanation=f"Input validation failed: {str(e)}",
+                evidence=evidence_list
+            )
+        
+        # Build prompt with clear separation between instructions and user data
+        prompt = f"""You are an objective analyst. Your task is to analyze a claim based on evidence from a specific perspective.
 
-        evidence_text = "\n".join([f"- [{e.source}] {e.title}: {e.snippet}" for e in evidence_list])
-        
-        prompt = f"""
-        You are an objective analyst. 
-        Claim: "{claim.text}"
-        
-        Evidence from {perspective.value} sources:
-        {evidence_text}
-        
-        Based ONLY on the provided evidence, does this perspective SUPPORT, REFUTE, or is it AMBIGUOUS regarding the claim?
-        Provide a confidence score (0.0 to 1.0) and a brief explanation.
-        
-        Output JSON format:
-        {{
-            "stance": "Support" | "Refute" | "Ambiguous",
-            "confidence": float,
-            "explanation": "string"
-        }}
-        """
+INSTRUCTIONS:
+1. Read the claim and evidence provided in the USER DATA section below
+2. Based ONLY on the provided evidence, determine if this perspective SUPPORTS, REFUTES, or is AMBIGUOUS regarding the claim
+3. Provide a confidence score (0.0 to 1.0) and a brief explanation
+4. Output your analysis in the specified JSON format
+
+{wrap_user_data(sanitized_claim, "CLAIM")}
+
+{wrap_user_data(sanitized_perspective, "PERSPECTIVE")}
+
+{wrap_user_data(sanitized_evidence, "EVIDENCE")}
+
+OUTPUT FORMAT (JSON):
+{{
+    "stance": "Support" | "Refute" | "Ambiguous",
+    "confidence": float,
+    "explanation": "string"
+}}"""
         
         try:
             response = await self.client.chat.completions.create(
@@ -61,7 +110,7 @@ class AnalysisService:
             )
             
         except Exception as e:
-            print(f"Error in perspective analysis: {e}")
+            logger.exception("Error in perspective analysis for %s", perspective.value)
             return PerspectiveAnalysis(
                 perspective=perspective,
                 stance="Error",
@@ -74,28 +123,44 @@ class AnalysisService:
         """
         Analyzes the claim text for bias and potential deception.
         """
-        prompt = f"""
-        Analyze the following text for bias and potential deception.
-        Text: "{claim.text}"
-        Context: "{claim.context or ''}"
+        try:
+            # Sanitize all user inputs
+            sanitized_claim = sanitize_claim_text(claim.text)
+            sanitized_context = sanitize_context(claim.context)
+            
+        except SanitizationError as e:
+            logger.error("Sanitization error in bias analysis for claim '%s': %s", claim.text[:50], e)
+            return BiasAnalysis(
+                deception_rating=0.0,
+                deception_rationale=f"Input validation failed: {str(e)}"
+            )
         
-        Evaluate:
-        1. Framing Bias (loaded language, emotional appeals)
-        2. Sourcing Bias (if sources are mentioned)
-        3. Omission Bias (cherry-picking)
-        4. Sensationalism (clickbait style)
-        5. Deception Rating (0-10, where 10 is highly deceptive/intentional lie)
-        
-        Output JSON format:
-        {{
-            "framing_bias": "string or null",
-            "sourcing_bias": "string or null",
-            "omission_bias": "string or null",
-            "sensationalism": "string or null",
-            "deception_rating": float,
-            "deception_rationale": "string"
-        }}
-        """
+        # Build prompt with clear separation between instructions and user data
+        prompt = f"""You are a bias and deception analyst. Your task is to analyze text for various forms of bias and potential deception.
+
+INSTRUCTIONS:
+1. Read the claim and context provided in the USER DATA section below
+2. Evaluate the following aspects:
+   - Framing Bias (loaded language, emotional appeals)
+   - Sourcing Bias (if sources are mentioned)
+   - Omission Bias (cherry-picking)
+   - Sensationalism (clickbait style)
+   - Deception Rating (0-10, where 10 is highly deceptive/intentional lie)
+3. Output your analysis in the specified JSON format
+
+{wrap_user_data(sanitized_claim, "CLAIM TEXT")}
+
+{wrap_user_data(sanitized_context if sanitized_context else "No context provided", "CONTEXT")}
+
+OUTPUT FORMAT (JSON):
+{{
+    "framing_bias": "string or null",
+    "sourcing_bias": "string or null",
+    "omission_bias": "string or null",
+    "sensationalism": "string or null",
+    "deception_rating": float,
+    "deception_rationale": "string"
+}}"""
         
         try:
             response = await self.client.chat.completions.create(
@@ -117,7 +182,7 @@ class AnalysisService:
             )
             
         except Exception as e:
-            print(f"Error in bias analysis: {e}")
+            logger.exception("Error in bias analysis for claim '%s'", claim.text[:50])
             return BiasAnalysis(
                 deception_rating=0.0,
                 deception_rationale=f"Analysis failed: {str(e)}"

@@ -11,15 +11,26 @@ class ClaimExtractor:
         """
         parsed_url = urlparse(url)
         if parsed_url.hostname == 'youtu.be':
-            return parsed_url.path[1:]
+            video_id = parsed_url.path[1:]
+            if not video_id:
+                raise ValueError("Invalid YouTube URL")
+            return video_id
         if parsed_url.hostname in ('www.youtube.com', 'youtube.com'):
             if parsed_url.path == '/watch':
                 p = parse_qs(parsed_url.query)
+                if 'v' not in p or not p['v']:
+                    raise ValueError("Invalid YouTube URL")
                 return p['v'][0]
             if parsed_url.path[:7] == '/embed/':
-                return parsed_url.path.split('/')[2]
+                parts = parsed_url.path.split('/')
+                if len(parts) < 3 or not parts[2]:
+                    raise ValueError("Invalid YouTube URL")
+                return parts[2]
             if parsed_url.path[:3] == '/v/':
-                return parsed_url.path.split('/')[2]
+                parts = parsed_url.path.split('/')
+                if len(parts) < 3 or not parts[2]:
+                    raise ValueError("Invalid YouTube URL")
+                return parts[2]
         raise ValueError("Invalid YouTube URL")
 
     def get_transcript(self, video_id: str) -> Transcript:
@@ -34,7 +45,7 @@ class ClaimExtractor:
                     text=item.text,
                     start=item.start,
                     duration=item.duration
-                ) for item in fetched_transcript.snippets
+                ) for item in fetched_transcript
             ]
             full_text = " ".join([s.text for s in segments])
             return Transcript(video_id=video_id, segments=segments, full_text=full_text)

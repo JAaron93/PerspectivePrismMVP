@@ -6,13 +6,17 @@ from app.services.claim_extractor import ClaimExtractor
 from app.services.evidence_retriever import EvidenceRetriever
 from app.services.analysis_service import AnalysisService
 import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
 # Add CORS middleware
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -39,6 +43,8 @@ async def analyze_video(request: VideoRequest):
     try:
         # 1. Extract Video ID and Transcript
         video_id = claim_extractor.extract_video_id(str(request.url))
+        if not video_id:
+            raise HTTPException(status_code=400, detail="Invalid video URL: could not extract video ID")
         transcript = claim_extractor.get_transcript(video_id)
         
         # 2. Extract Claims
@@ -102,8 +108,9 @@ async def analyze_video(request: VideoRequest):
         )
 
     except ValueError as e:
+        # ValueError is safe to return - it's from our validation
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        # Log the full error in a real app
-        print(f"Error processing video: {e}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        # Log full stacktrace server-side but hide details from client
+        logger.exception("Error processing video analysis request")
+        raise HTTPException(status_code=500, detail="Internal server error")
