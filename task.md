@@ -1,8 +1,7 @@
-# Investigating Timeout Error
+# Generating Architecture Diagram
 
-- [x] Check backend logs for recent request details
-- [x] Check `App.tsx` for API call implementation and timeout settings
-- [x] Increase frontend timeout to 120s
-- [x] Reduce backend processing load (1 claim instead of 3)
-- [x] Verify fix with browser test
-- [x] Update walkthrough.md with verification results
+- [x] Explore codebase structure
+- [x] Analyze backend services and flow
+- [x] Analyze frontend components and flow
+- [x] Generate Mermaid diagram
+- [x] Save diagram to `architecture.md`
