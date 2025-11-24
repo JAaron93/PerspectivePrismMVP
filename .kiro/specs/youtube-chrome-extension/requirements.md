@@ -93,10 +93,9 @@ This document defines the requirements for a Chrome browser extension that integ
 
 1. IF the Perspective Prism Backend is unreachable, THEN THE Extension SHALL display an error message indicating connection failure
 2. IF the video has no available transcript, THEN THE Extension SHALL display a message explaining that analysis cannot be performed
-3. IF the analysis request fails, THEN THE Extension SHALL log sanitized error metadata (HTTP status codes, error type/messages, timestamps, network timeouts, malformed URL indicators) to the browser console for debugging.
+3. THE Extension SHALL log only sanitized error metadata (e.g., HTTP status code, error type/message, timestamp, network timeout indicator, malformed-URL flag, and minimal request identifier) to the browser console, and SHALL NOT log any sensitive content such as video data or transcripts, user-identifying information (emails, usernames), API keys/tokens, or full URLs with query parameters/other PII.
 4. THE Extension SHALL provide actionable error messages that guide users toward resolution
 5. WHEN an error occurs, THE Extension SHALL allow users to retry the analysis request
-6. THE Extension SHALL exclude video data, user information, and potentially sensitive backend responses from console logs and only log sanitized error metadata.
 
 ### Requirement 7: Privacy and Security
 

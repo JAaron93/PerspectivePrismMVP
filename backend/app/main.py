@@ -12,7 +12,7 @@ import asyncio
 import logging
 import uuid
 from typing import Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ async def cleanup_jobs():
         try:
             await asyncio.sleep(300)  # Run every 5 minutes
             async with jobs_lock:
-                now = datetime.utcnow()
+                now = datetime.now(timezone.utc)
                 jobs_to_remove = []
                 for job_id, job in jobs.items():
                     if now - job["created_at"] > timedelta(hours=1):
@@ -64,6 +64,9 @@ async def cleanup_jobs():
                 
                 if jobs_to_remove:
                     logger.info(f"Cleaned up {len(jobs_to_remove)} old jobs")
+        except asyncio.CancelledError:
+            logger.info("Cleanup jobs task cancelled")
+            raise
         except Exception as e:
             logger.error(f"Error in cleanup_jobs task: {e}")
 
@@ -180,7 +183,7 @@ async def create_analysis_job(request: VideoRequest, background_tasks: Backgroun
             "status": JobStatus.PENDING,
             "result": None,
             "error": None,
-            "created_at": datetime.utcnow()
+            "created_at": datetime.now(timezone.utc)
         }
     
     background_tasks.add_task(process_analysis, job_id, request)
