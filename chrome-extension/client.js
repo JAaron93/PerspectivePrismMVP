@@ -126,7 +126,6 @@ class PerspectivePrismClient {
                 return { success: false, error: 'Analysis in progress (retrying)', isRetry: true };
             } else {
                 // Terminal failure
-                // Terminal failure
                 await this.cleanupPersistedRequest(videoId);
                 const errorResult = { success: false, error: error.message };
                 this.notifyCompletion(videoId, errorResult);
@@ -173,7 +172,9 @@ class PerspectivePrismClient {
                 throw new Error(`HTTP error ${response.status}: ${errorText}`);
             }
 
-            return await response.json();
+            const data = await response.json();
+            this.validateAnalysisData(data);
+            return data;
         } finally {
             clearTimeout(timeoutId);
             progressTimers.forEach(t => clearTimeout(t));
@@ -352,6 +353,76 @@ class PerspectivePrismClient {
                 }
             }
         }
+    }
+
+    validateAnalysisData(data) {
+        if (!data) {
+            throw new ValidationError('Response data is null or undefined');
+        }
+
+        // Validate video_id
+        if (typeof data.video_id !== 'string' || !/^[a-zA-Z0-9_-]{11}$/.test(data.video_id)) {
+            throw new ValidationError('Invalid or missing video_id: must be an 11-character string');
+        }
+
+        // Validate metadata
+        if (!data.metadata || typeof data.metadata !== 'object') {
+            throw new ValidationError('Missing metadata object');
+        }
+        if (typeof data.metadata.analyzed_at !== 'string') {
+            throw new ValidationError('Missing or invalid metadata.analyzed_at');
+        }
+
+        // Validate claims
+        if (!Array.isArray(data.claims)) {
+            throw new ValidationError('claims must be an array');
+        }
+
+        data.claims.forEach((claim, index) => {
+            if (typeof claim.claim_text !== 'string') {
+                throw new ValidationError(`Claim at index ${index} missing claim_text`);
+            }
+
+            // Validate truth_profile
+            if (!claim.truth_profile || typeof claim.truth_profile !== 'object') {
+                throw new ValidationError(`Claim at index ${index} missing truth_profile`);
+            }
+
+            const tp = claim.truth_profile;
+            if (typeof tp.overall_assessment !== 'string') {
+                throw new ValidationError(`Claim at index ${index} missing overall_assessment`);
+            }
+
+            // Validate perspectives
+            if (!tp.perspectives || typeof tp.perspectives !== 'object') {
+                throw new ValidationError(`Claim at index ${index} missing perspectives object`);
+            }
+
+            // Validate bias_indicators
+            if (!tp.bias_indicators || typeof tp.bias_indicators !== 'object') {
+                throw new ValidationError(`Claim at index ${index} missing bias_indicators`);
+            }
+
+            const bi = tp.bias_indicators;
+            if (!Array.isArray(bi.logical_fallacies)) {
+                throw new ValidationError(`Claim at index ${index} invalid logical_fallacies array`);
+            }
+            if (!Array.isArray(bi.emotional_manipulation)) {
+                throw new ValidationError(`Claim at index ${index} invalid emotional_manipulation array`);
+            }
+            if (typeof bi.deception_score !== 'number') {
+                throw new ValidationError(`Claim at index ${index} invalid deception_score`);
+            }
+        });
+
+        return true;
+    }
+}
+
+class ValidationError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'ValidationError';
     }
 }
 
