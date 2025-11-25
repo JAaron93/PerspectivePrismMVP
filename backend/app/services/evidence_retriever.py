@@ -99,7 +99,7 @@ class EvidenceRetriever:
                 return [Evidence(
                     url="https://developers.google.com/custom-search/v1/overview",
                     title="Search Quota Exceeded",
-                    snippet="The daily quota for Google Custom Search API has been exceeded. Unable to retrieve live evidence for this perspective.",
+                    snippet="The quota for Google Custom Search API has been exceeded. Unable to retrieve live evidence for this perspective.",
                     source="System",
                     perspective=perspective
                 )]

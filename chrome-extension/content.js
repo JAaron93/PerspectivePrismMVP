@@ -21,7 +21,7 @@ function extractVideoId() {
     }
 
     const pathname = window.location.pathname;
-    const shortsMatch = pathname.match(/\/shorts\/([A-Za-z0-9_-]+)/);
+    const shortsMatch = pathname.match(/\/shorts\/([A-Za-z0-9_-]{11})/);
     if (shortsMatch) return shortsMatch[1];
 
     return null;
@@ -70,36 +70,31 @@ function injectButton() {
 
 // --- Interaction Handling ---
 
-async function handleAnalysisClick() {
+function handleAnalysisClick() {
     if (!currentVideoId) return;
 
     setButtonState('loading');
 
-    try {
-        // Check cache first (handled by client.js in background, but we send message)
-        chrome.runtime.sendMessage({
-            type: 'ANALYZE_VIDEO',
-            videoId: currentVideoId
-        }, (response) => {
-            if (chrome.runtime.lastError) {
-                console.error('Message failed:', chrome.runtime.lastError);
-                setButtonState('error');
-                showError('Extension connection failed. Please reload.');
-                return;
-            }
+    // Check cache first (handled by client.js in background, but we send message)
+    chrome.runtime.sendMessage({
+        type: 'ANALYZE_VIDEO',
+        videoId: currentVideoId
+    }, (response) => {
+        if (chrome.runtime.lastError) {
+            console.error('Message failed:', chrome.runtime.lastError);
+            setButtonState('error');
+            showError('Extension connection failed. Please reload.');
+            return;
+        }
 
-            if (response && response.success) {
-                setButtonState('success');
-                showResults(response.data);
-            } else {
-                setButtonState('error');
-                showError(response?.error || 'Analysis failed');
-            }
-        });
-    } catch (e) {
-        console.error('Click handler error:', e);
-        setButtonState('error');
-    }
+        if (response && response.success) {
+            setButtonState('success');
+            showResults(response.data);
+        } else {
+            setButtonState('error');
+            showError(response?.error || 'Analysis failed');
+        }
+    });
 }
 
 function setButtonState(state) {
@@ -107,6 +102,8 @@ function setButtonState(state) {
 
     const textSpan = analysisButton.querySelector('span:last-child');
     const iconSpan = analysisButton.querySelector('.pp-icon');
+
+    if (!textSpan || !iconSpan) return;
 
     switch (state) {
         case 'loading':
@@ -225,16 +222,30 @@ function showResults(data) {
             if (assessment.toLowerCase().includes('true') || assessment.toLowerCase().includes('accurate')) assessClass = 'high';
             else if (assessment.toLowerCase().includes('false') || assessment.toLowerCase().includes('misleading')) assessClass = 'medium';
 
-            card.innerHTML = `
-                <div class="claim-text">${claim.claim_text}</div>
-                <div class="assessment ${assessClass}">${assessment}</div>
-                <div class="perspectives">
-                    ${Object.entries(claim.truth_profile?.perspectives || {}).map(([key, val]) =>
-                `<div><strong>${key}:</strong> ${val.assessment}</div>`
-            ).join('')}
-                </div>
-            `;
-            content.appendChild(card);
+            const claimTextDiv = document.createElement('div');
+            claimTextDiv.className = 'claim-text';
+            claimTextDiv.textContent = claim.claim_text;
+            
+            const assessmentDiv = document.createElement('div');
+            assessmentDiv.className = `assessment ${assessClass}`;
+            assessmentDiv.textContent = assessment;
+            
+            const perspectivesDiv = document.createElement('div');
+            perspectivesDiv.className = 'perspectives';
+            Object.entries(claim.truth_profile?.perspectives || {}).forEach(([key, val]) => {
+                const perDiv = document.createElement('div');
+                const strong = document.createElement('strong');
+                strong.textContent = key + ':';
+                perDiv.appendChild(strong);
+                perDiv.appendChild(document.createTextNode(' ' + val.assessment));
+                perspectivesDiv.appendChild(perDiv);
+            });
+            
+            card.appendChild(claimTextDiv);
+            card.appendChild(assessmentDiv);
+            card.appendChild(perspectivesDiv);
+             content.appendChild(card);
+
         });
     } else {
         content.innerHTML = '<p>No claims extracted.</p>';
@@ -263,6 +274,22 @@ function removePanel() {
 
 // --- Lifecycle ---
 
+function handleNavigation() {
+    const vid = extractVideoId();
+    if (vid !== currentVideoId) {
+        currentVideoId = vid;
+        // Re-inject if needed or reset state
+        if (currentVideoId) {
+            injectButton();
+            setButtonState('idle');
+            removePanel();
+        }
+    } else if (currentVideoId && !document.getElementById(BUTTON_ID)) {
+        // Ensure button stays injected
+        injectButton();
+    }
+}
+
 function init() {
     // Initial check
     const newVideoId = extractVideoId();
@@ -271,26 +298,46 @@ function init() {
         injectButton();
     }
 
-    // Observer for navigation (SPA)
-    const observer = new MutationObserver(() => {
-        const vid = extractVideoId();
-        if (vid !== currentVideoId) {
-            currentVideoId = vid;
-            // Re-inject if needed or reset state
-            if (currentVideoId) {
-                injectButton();
-                setButtonState('idle');
-                removePanel();
-            }
-        }
+    // URL-change detection for YouTube SPA navigation
+    // Track last URL to detect changes
+    let lastUrl = location.href;
 
-        // Ensure button stays injected
+    // Debounced handler with 150ms delay
+    let debounceTimer = null;
+    const debouncedNavigation = () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            if (location.href !== lastUrl) {
+                lastUrl = location.href;
+                handleNavigation();
+            }
+        }, 150);
+    };
+
+    // Intercept pushState/replaceState (YouTube uses History API)
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+
+    history.pushState = function (...args) {
+        originalPushState.apply(this, args);
+        debouncedNavigation();
+    };
+
+    history.replaceState = function (...args) {
+        originalReplaceState.apply(this, args);
+        debouncedNavigation();
+    };
+
+    // Listen for back/forward navigation
+    window.addEventListener('popstate', debouncedNavigation);
+
+    // Minimal fallback observer only for button re-injection
+    // (much cheaper than full body observation)
+    const buttonCheckInterval = setInterval(() => {
         if (currentVideoId && !document.getElementById(BUTTON_ID)) {
             injectButton();
         }
-    });
-
-    observer.observe(document.body, { childList: true, subtree: true });
+    }, 2000); // Check every 2 seconds
 }
 
 // Run

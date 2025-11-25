@@ -178,8 +178,7 @@ async def process_analysis(job_id: str, request: VideoRequest):
         result = AnalysisResponse(
             video_id=video_id,
             metadata=AnalysisMetadata(
-                analyzed_at=datetime.now(timezone.utc).isoformat(),
-                video_id=video_id
+                analyzed_at=datetime.now(timezone.utc).isoformat()
             ),
             claims=claims_to_return
         )

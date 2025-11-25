@@ -19,13 +19,6 @@ configManager.load().then(config => {
     // ConfigManager returns defaults on failure, so we should be good.
 });
 
-// Also clean up on startup event (if worker was suspended)
-chrome.runtime.onStartup.addListener(() => {
-    if (client) {
-        client.cleanupExpiredCache();
-    }
-});
-
 // Message handling
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'ANALYZE_VIDEO') {

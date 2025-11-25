@@ -58,7 +58,6 @@ class TruthProfile(BaseModel):
 
 class AnalysisMetadata(BaseModel):
     analyzed_at: str
-    video_id: str
 
 class BiasIndicators(BaseModel):
     logical_fallacies: List[str] = []

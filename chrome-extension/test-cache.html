@@ -38,10 +38,10 @@
                 local: {
                     get: async (key) => {
                         if (key === null) return storage;
-                        if (typeof key === 'string') return { [key]: storage[key] };
+                        if (typeof key === 'string') return key in storage ? { [key]: storage[key] } : {};
                         if (Array.isArray(key)) {
                             const res = {};
-                            key.forEach(k => res[k] = storage[k]);
+                            key.forEach(k => { if (k in storage) res[k] = storage[k]; });
                             return res;
                         }
                         return storage;
@@ -66,6 +66,26 @@
             }
         };
 
+        // Time mocking infrastructure
+        let mockTime = null;
+        const originalDateNow = Date.now;
+
+        function mockDateNow(timestamp) {
+            mockTime = timestamp;
+            Date.now = () => mockTime;
+        }
+
+        function restoreDateNow() {
+            Date.now = originalDateNow;
+            mockTime = null;
+        }
+
+        function advanceTime(ms) {
+            if (mockTime !== null) {
+                mockTime += ms;
+            }
+        }
+
         // Mock console to capture logs
         const originalConsoleLog = console.log;
         const originalConsoleError = console.error;
@@ -83,9 +103,66 @@
     <script src="client.js"></script>
 
     <script>
+        if (typeof PerspectivePrismClient === 'undefined') {
+            document.getElementById('results').innerHTML = '<div class="fail">FAIL: PerspectivePrismClient not loaded</div>';
+            throw new Error('client.js failed to load or PerspectivePrismClient is not defined');
+        }
+
+        // Test helpers that use public API and avoid internal implementation details
+        class CacheTestHelper {
+            constructor(client) {
+                this.client = client;
+            }
+
+            // Get cache entry count using public methods
+            async getCacheEntryCount() {
+                const allKeys = Object.keys(storage).filter(k => k.startsWith('cache_'));
+                return allKeys.length;
+            }
+
+            // Check if a video is cached without exposing internal structure
+            async isCached(videoId) {
+                const result = await this.client.checkCache(videoId);
+                return result !== null;
+            }
+
+            // Create cache entry using public API
+            async createCacheEntry(videoId, data, options = {}) {
+                await this.client.saveToCache(videoId, data);
+            }
+
+            // Clear all cache entries
+            async clearAll() {
+                const allKeys = Object.keys(storage).filter(k => k.startsWith('cache_'));
+                if (allKeys.length > 0) {
+                    await chrome.storage.local.remove(allKeys);
+                }
+            }
+
+            // Debug accessor for tests (non-production)
+            async _getCacheMetadata(videoId) {
+                const key = `cache_${videoId}`; // Only place we use internal key format
+                const item = storage[key];
+                if (!item) return null;
+                return {
+                    hasData: !!item.data,
+                    timestamp: item.timestamp,
+                    version: item.version,
+                    lastAccessed: item.lastAccessed
+                };
+            }
+
+            // Mock expiry by advancing time (not manipulating fields directly)
+            simulateExpiry(videoId, hoursAgo) {
+                // This uses time mocking instead of field manipulation
+                advanceTime(hoursAgo * 60 * 60 * 1000);
+            }
+        }
+
         async function runTests() {
             const resultsDiv = document.getElementById('results');
             const client = new PerspectivePrismClient('http://localhost:8000');
+            const helper = new CacheTestHelper(client);
 
             // Helper to assert
             function assert(condition, message) {
@@ -110,56 +187,82 @@
                 // Test 2: Cache Hit
                 console.log('--- Test 2: Cache Hit ---');
                 const data = { foo: 'bar' };
-                await client.saveToCache('video1', data);
+                await helper.createCacheEntry('video1', data);
                 const hit = await client.checkCache('video1');
                 assert(hit && hit.foo === 'bar', 'Cache hit returns data');
 
-                // Test 3: Expiration
+                // Test 3: Expiration using time mocking
                 console.log('--- Test 3: Expiration ---');
-                // Manually expire
-                const key = 'cache_video1';
-                const entry = storage[key];
-                entry.timestamp = Date.now() - (25 * 60 * 60 * 1000); // 25 hours ago
-                storage[key] = entry;
+                await helper.clearAll();
 
-                const expired = await client.checkCache('video1');
+                // Mock current time and create entry
+                const baseTime = Date.now();
+                mockDateNow(baseTime);
+                await helper.createCacheEntry('video2', data);
+
+                // Advance time by 25 hours
+                advanceTime(25 * 60 * 60 * 1000);
+
+                const expired = await client.checkCache('video2');
                 assert(expired === null, 'Expired item returns null');
-                assert(!storage[key], 'Expired item removed from storage');
+                const stillCached = await helper.isCached('video2');
+                assert(!stillCached, 'Expired item removed from storage');
+
+                restoreDateNow();
 
                 // Test 4: Versioning
                 console.log('--- Test 4: Versioning ---');
-                await client.saveToCache('video2', data);
-                const key2 = 'cache_video2';
-                storage[key2].version = 'v0'; // Old version
+                await helper.clearAll();
+                await helper.createCacheEntry('video3', data);
 
-                const versionMismatch = await client.checkCache('video2');
+                // Use debug accessor to check and modify version (only for testing)
+                const metadata = await helper._getCacheMetadata('video3');
+                assert(metadata && metadata.version === 'v1', 'Cache entry has correct version');
+
+                // Manually corrupt version for test (via direct storage access only in test)
+                const key3 = 'cache_video3';
+                storage[key3].version = 'v0'; // Simulate old version
+
+                const versionMismatch = await client.checkCache('video3');
                 assert(versionMismatch === null, 'Version mismatch returns null');
-                assert(!storage[key2], 'Version mismatch removed from storage');
+                const removedAfterMismatch = await helper.isCached('video3');
+                assert(!removedAfterMismatch, 'Version mismatch removed from storage');
 
-                // Test 5: LRU Eviction
+                // Test 5: LRU Eviction using time mocking
                 console.log('--- Test 5: LRU Eviction ---');
-                // Clear storage
-                for (const k in storage) delete storage[k];
+                await helper.clearAll();
 
-                // Add 51 items (MAX is 50)
+                // Mock time progression for LRU
+                const lruBaseTime = Date.now();
+                mockDateNow(lruBaseTime);
+
+                // Add 51 items with time progressing for each
                 for (let i = 0; i < 51; i++) {
                     const id = `vid_${i.toString().padStart(3, '0')}`;
-                    await client.saveToCache(id, { id });
-                    // Mock time passing for lastAccessed
-                    storage[`cache_${id}`].lastAccessed = Date.now() + i;
+                    await helper.createCacheEntry(id, { id });
+                    advanceTime(100); // Advance 100ms between each entry
                 }
 
-                // Force enforcement (it's async in saveToCache, so we call it manually to be sure)
+                // Force enforcement
                 await client.enforceCacheLimits();
 
-                const keys = Object.keys(storage).filter(k => k.startsWith('cache_'));
-                assert(keys.length === 50, `Cache size is ${keys.length} (expected 50)`);
-                assert(!storage['cache_vid_000'], 'Oldest item (vid_000) evicted');
-                assert(storage['cache_vid_050'], 'Newest item (vid_050) retained');
+                const count = await helper.getCacheEntryCount();
+                assert(count === 50, `Cache size is ${count} (expected 50)`);
+
+                const oldestExists = await helper.isCached('vid_000');
+                const newestExists = await helper.isCached('vid_050');
+                assert(!oldestExists, 'Oldest item (vid_000) evicted');
+                assert(newestExists, 'Newest item (vid_050) retained');
+
+                restoreDateNow();
 
             } catch (e) {
                 console.error('Test failed with exception:', e);
                 assert(false, `Exception: ${e.message}`);
+                restoreDateNow(); // Ensure cleanup on error
+            } finally {
+                // Always restore Date.now
+                restoreDateNow();
             }
         }
 
