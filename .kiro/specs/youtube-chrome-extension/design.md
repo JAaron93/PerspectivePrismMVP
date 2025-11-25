@@ -38,7 +38,7 @@ The YouTube Chrome Extension is a Manifest V3 browser extension that integrates 
 ┌──────────────────────────────────────────────────────────────┐
 │              Chrome Storage API                              │
 │  - Extension configuration (backend URL)                     │
-│  - Cached analysis results (indexed by video ID)             │
+│  - Cached analysis results (indexed by video ID using key format `cache_{videoId}`)             │
 │  - User preferences                                          │
 └──────────────────────────────────────────────────────────────┘
 ```

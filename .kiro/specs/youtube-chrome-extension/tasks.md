@@ -84,21 +84,22 @@
     - [x] Add error logging with sanitization (no URLs, tokens, or PII)
     - _Requirements: 3.2, 3.3, 6.1, 6.2, 6.3, 6.4_
 
-- [ ] 4. Implement cache management with versioning and migration
-  - [x] 4. Implement cache management with versioning and migration
-- [x] 4.1 Define cache key strategy
+  - [x] 3.4 Implement cache management with versioning and migration
+    - [x] Define cache key strategy
+    - _Requirements: 3.4_
 
-[x] 5. Refactor Client for Async Job API
-- [x] 5.1 Update `client.js` to use `/analyze/jobs` and polling
-- [x] 5.2 Improve error logging
+  - [x] 3.5 Refactor Client for Async Job API
+    - [x] Update `client.js` to use `/analyze/jobs` and polling
+    - [x] Improve error logging
+    - _Requirements: 3.5_
 
-[x] 6. Verify Backend Connection
-- [x] 6.1 Ensure backend is running
-- [x] 6.2 Configure CORS for extension
+  - [x] 4. Verify Backend Connection
+    - [x] 4.1 Verify end-to-end flow
+      - [x] Ensure backend is running
+      - [x] Configure CORS for extension
     - **Cache key design decision:**
       - Primary strategy: Simple key = `cache_{videoId}`
       - Rationale: One analysis per video (latest overwrites previous)
-- [x] 6.3 Verify end-to-end flow
     - Confirmed backend receives request, processes (with quota limits), and returns result.
     - Optimized claim limit to 3 to prevent timeouts.
       - Alternative considered: Composite key = `cache_{videoId}_{timestamp}`

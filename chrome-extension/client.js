@@ -326,6 +326,8 @@ class PerspectivePrismClient {
      * @returns {Promise<Object|null>} Cached data or null if miss/expired
      */
     async checkCache(videoId) {
+        // Primary cache key strategy: Simple key = `cache_{videoId}`
+        // This ensures one analysis per video (latest overwrites previous)
         const key = `cache_${videoId}`;
         try {
             const result = await chrome.storage.local.get(key);
