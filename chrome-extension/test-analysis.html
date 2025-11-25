@@ -93,7 +93,11 @@
 
         function appendLog(type, args) {
             const msg = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
-            logDiv.innerHTML += `<div style="color: ${type === 'ERROR' ? 'red' : 'black'}">[${type}] ${msg}</div>`;
+            const logEntry = document.createElement('div');
+            logEntry.style.color = type === 'ERROR' ? 'red' : 'black';
+            logEntry.textContent = `[${type}] ${msg}`;
+            logDiv.appendChild(logEntry);
+        }
         }
 
         console.log = (...args) => {
@@ -121,15 +125,20 @@
                 const client = new PerspectivePrismClient('http://localhost:8000');
 
                 statusDiv.textContent = 'Starting Analysis... (This may take a minute)';
-                const result = await client.analyzeVideo(videoId);
-
-                if (result.success) {
-                    statusDiv.innerHTML = '<span class="pass">Analysis Successful!</span>';
-                    resultsDiv.innerHTML = `
+                const escaped = (str) => {
+                    const div = document.createElement('div');
+                    div.textContent = str;
+                    return div.innerHTML;
+                };
+                resultsDiv.innerHTML = `
                         <h3>Claims Found: ${result.data.claims.length}</h3>
                         <ul>
-                            ${result.data.claims.map(c => `<li><b>${c.claim_text}</b><br>Assessment: ${c.truth_profile.overall_assessment}</li>`).join('')}
+                            ${result.data.claims.map(c => `<li><b>${escaped(c.claim_text)}</b><br>Assessment: ${escaped(c.truth_profile.overall_assessment)}</li>`).join('')}
                         </ul>
+                    `;
+                <ul>
+                    ${result.data.claims.map(c => `<li><b>${c.claim_text}</b><br>Assessment: ${c.truth_profile.overall_assessment}</li>`).join('')}
+                </ul>
                     `;
                     jsonOutput.textContent = JSON.stringify(result.data, null, 2);
                 } else {

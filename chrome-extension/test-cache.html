@@ -147,7 +147,7 @@
                 return {
                     hasData: !!item.data,
                     timestamp: item.timestamp,
-                    version: item.version,
+                    schemaVersion: item.schemaVersion,
                     lastAccessed: item.lastAccessed
                 };
             }
@@ -204,23 +204,29 @@
 
                 restoreDateNow();
 
-                // Test 4: Versioning
-                console.log('--- Test 4: Versioning ---');
+                // Test 4: Versioning & Forward Compatibility
+                console.log('--- Test 4: Versioning & Forward Compatibility ---');
                 await helper.clearAll();
-                await helper.createCacheEntry('video3', data);
+                // Create valid data for this test
+                const validData = {
+                    video_id: 'video3',
+                    metadata: { analyzed_at: new Date().toISOString() },
+                    claims: []
+                };
+                await helper.createCacheEntry('video3', validData);
 
-                // Use debug accessor to check and modify version (only for testing)
+                // Use debug accessor to check version
                 const metadata = await helper._getCacheMetadata('video3');
-                assert(metadata && metadata.version === 'v1', 'Cache entry has correct version');
+                assert(metadata && metadata.schemaVersion === 1, 'Cache entry has correct schemaVersion: 1');
 
-                // Manually corrupt version for test (via direct storage access only in test)
+                // Manually set future version
                 const key3 = 'cache_video3';
-                storage[key3].version = 'v0'; // Simulate old version
+                storage[key3].schemaVersion = 99; // Future version
 
-                const versionMismatch = await client.checkCache('video3');
-                assert(versionMismatch === null, 'Version mismatch returns null');
-                const removedAfterMismatch = await helper.isCached('video3');
-                assert(!removedAfterMismatch, 'Version mismatch removed from storage');
+                const futureVersion = await client.checkCache('video3');
+                assert(futureVersion === null, 'Future version returns null');
+                const removedFuture = await helper.isCached('video3');
+                assert(!removedFuture, 'Future version removed from storage');
 
                 // Test 5: LRU Eviction using time mocking
                 console.log('--- Test 5: LRU Eviction ---');
@@ -249,6 +255,46 @@
                 assert(newestExists, 'Newest item (vid_050) retained');
 
                 restoreDateNow();
+
+                // Test 6: Schema Migration
+                console.log('--- Test 6: Schema Migration ---');
+                await helper.clearAll();
+
+                // Create a legacy V0 entry (no schemaVersion, maybe old 'version' string)
+                // We need valid data structure for validation to pass
+                const v0Data = {
+                    video_id: 'vid_legacy0',
+                    metadata: { analyzed_at: new Date().toISOString() },
+                    claims: []
+                };
+                // Manually insert into storage to simulate old state
+                const v0Entry = {
+                    version: 'v1', // Old string version
+                    timestamp: Date.now(),
+                    lastAccessed: Date.now(),
+                    data: v0Data
+                };
+                storage['cache_vid_legacy0'] = v0Entry;
+
+                // Check cache - should trigger migration
+                const migratedResult = await client.checkCache('vid_legacy0');
+                assert(migratedResult !== null, 'Legacy entry migrated successfully');
+
+                // Verify storage has new schemaVersion
+                const storedV1 = storage['cache_vid_legacy0'];
+                assert(storedV1.schemaVersion === 1, 'Entry has schemaVersion: 1');
+                assert(storedV1.version === undefined, 'Legacy version field removed');
+
+                // Test corrupted legacy entry
+                const corruptedV0Data = { video_id: 'vid_corrupt' }; // Missing claims, metadata
+                storage['cache_vid_corrupt'] = {
+                    timestamp: Date.now(),
+                    data: corruptedV0Data
+                };
+
+                const corruptResult = await client.checkCache('vid_corrupt');
+                assert(corruptResult === null, 'Corrupted legacy entry removed');
+                assert(!storage['cache_vid_corrupt'], 'Corrupted entry deleted from storage');
 
             } catch (e) {
                 console.error('Test failed with exception:', e);

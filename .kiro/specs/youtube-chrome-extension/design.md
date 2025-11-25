@@ -572,7 +572,26 @@ interface CacheEntry {
   data: AnalysisData;
   timestamp: number;
   expiresAt: number;
+  schemaVersion: number; // Added for migration support
 }
+
+### Cache Schema Migration
+
+To ensure forward compatibility and prevent data invalidation during updates, the extension implements a schema migration registry.
+
+**Versioning Strategy:**
+- `CURRENT_SCHEMA_VERSION`: Integer constant representing the latest schema version.
+- `schemaVersion`: Field stored with each cache entry.
+
+**Migration Process:**
+1.  **Check**: When retrieving a cache entry, `checkCache` compares the entry's `schemaVersion` with `CURRENT_SCHEMA_VERSION`.
+2.  **Migrate**: If the entry is older, `migrateCacheEntry` applies a sequence of migration functions (e.g., `v0 -> v1`, `v1 -> v2`) defined in `SCHEMA_MIGRATIONS`.
+3.  **Update**: The migrated entry is returned to the application and asynchronously saved back to storage.
+4.  **Discard**: If an entry is from a future version (forward compatibility), it is treated as a cache miss and removed to prevent errors.
+
+**Registry:**
+- `SCHEMA_MIGRATIONS`: A map of migration functions keyed by the starting version.
+- Example: `{ 0: migrateV0ToV1 }` handles migration from legacy (v0) to schema v1.
 
 // API client with comprehensive error handling and retry logic
 // Persistent request state for MV3 service worker recovery

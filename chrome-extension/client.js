@@ -12,9 +12,14 @@ class PerspectivePrismClient {
         this.MAX_REQUEST_AGE = 300000; // 5 minutes
 
         // Cache Configuration
-        this.CACHE_VERSION = 'v1';
+        this.CURRENT_SCHEMA_VERSION = 1;
         this.CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
         this.MAX_CACHE_ITEMS = 50;
+
+        // Migration Registry
+        this.SCHEMA_MIGRATIONS = {
+            0: this.migrateV0ToV1.bind(this)
+        };
 
         // Recover persisted requests on startup
         this.recoverPersistedRequests();
@@ -331,16 +336,9 @@ class PerspectivePrismClient {
         const key = `cache_${videoId}`;
         try {
             const result = await chrome.storage.local.get(key);
-            const entry = result[key];
+            let entry = result[key];
 
             if (!entry) return null;
-
-            // Check version
-            if (entry.version !== this.CACHE_VERSION) {
-                console.log(`[PerspectivePrismClient] Cache version mismatch for ${videoId}`);
-                await chrome.storage.local.remove(key);
-                return null;
-            }
 
             // Check expiration
             const age = Date.now() - entry.timestamp;
@@ -348,6 +346,22 @@ class PerspectivePrismClient {
                 console.log(`[PerspectivePrismClient] Cache expired for ${videoId}`);
                 await chrome.storage.local.remove(key);
                 return null;
+            }
+
+            // Apply Migrations
+            const migratedEntry = await this.migrateCacheEntry(entry);
+
+            if (!migratedEntry) {
+                console.log(`[PerspectivePrismClient] Cache entry corrupted or migration failed for ${videoId}`);
+                await chrome.storage.local.remove(key);
+                return null;
+            }
+
+            // If migration occurred, save the updated entry
+            if (migratedEntry !== entry) {
+                console.log(`[PerspectivePrismClient] Saving migrated entry for ${videoId}`);
+                await chrome.storage.local.set({ [key]: migratedEntry });
+                entry = migratedEntry;
             }
 
             // Update lastAccessed (async, don't wait)
@@ -369,7 +383,7 @@ class PerspectivePrismClient {
     async saveToCache(videoId, data) {
         const key = `cache_${videoId}`;
         const entry = {
-            version: this.CACHE_VERSION,
+            schemaVersion: this.CURRENT_SCHEMA_VERSION,
             timestamp: Date.now(),
             lastAccessed: Date.now(),
             data: data
@@ -423,16 +437,13 @@ class PerspectivePrismClient {
 
             for (const key of cacheKeys) {
                 const entry = all[key];
-                // Check version
-                if (entry.version !== this.CACHE_VERSION) {
-                    keysToRemove.push(key);
-                    continue;
-                }
                 // Check expiration
                 const age = Date.now() - entry.timestamp;
                 if (age > this.CACHE_TTL_MS) {
                     keysToRemove.push(key);
                 }
+                // Note: We don't check version here anymore, as checkCache handles migration.
+                // However, we could remove really old versions if we wanted to, but migration is better.
             }
 
             if (keysToRemove.length > 0) {
@@ -442,6 +453,85 @@ class PerspectivePrismClient {
         } catch (error) {
             console.error('[PerspectivePrismClient] Failed to cleanup expired cache:', error);
         }
+    }
+
+    /**
+     * Migrates a cache entry to the current schema version.
+     * @param {Object} entry - The cache entry to migrate.
+     * @returns {Object|null} - The migrated entry, or null if migration failed.
+     */
+    async migrateCacheEntry(entry) {
+        let currentVersion = entry.schemaVersion || 0;
+
+        // If it's already current, return it
+        if (currentVersion === this.CURRENT_SCHEMA_VERSION) {
+            return entry;
+        }
+
+        // If it's newer than what we know, discard it (forward compatibility)
+        if (currentVersion > this.CURRENT_SCHEMA_VERSION) {
+            console.warn(`[PerspectivePrismClient] Cache entry version ${currentVersion} is newer than supported ${this.CURRENT_SCHEMA_VERSION}`);
+            return null;
+        }
+
+        // Apply migrations sequentially
+        let migratedEntry = { ...entry }; // Shallow copy to avoid mutating original if we fail mid-way (though we return null anyway)
+
+        while (currentVersion < this.CURRENT_SCHEMA_VERSION) {
+            const migrationFn = this.SCHEMA_MIGRATIONS[currentVersion];
+            if (!migrationFn) {
+                console.error(`[PerspectivePrismClient] No migration function for version ${currentVersion}`);
+                return null;
+            }
+
+            console.log(`[PerspectivePrismClient] Migrating cache entry from v${currentVersion} to v${currentVersion + 1}`);
+            try {
+                const result = migrationFn(migratedEntry);
+                if (!result) {
+                    console.warn(`[PerspectivePrismClient] Migration from v${currentVersion} failed (returned null)`);
+                    return null;
+                }
+                migratedEntry = result;
+                currentVersion++;
+
+                // Ensure version was updated
+                if (migratedEntry.schemaVersion !== currentVersion) {
+                    migratedEntry.schemaVersion = currentVersion;
+                }
+            } catch (e) {
+                console.error(`[PerspectivePrismClient] Exception during migration from v${currentVersion}:`, e);
+                return null;
+            }
+        }
+
+        return migratedEntry;
+    }
+
+    /**
+     * Migration: V0 -> V1
+     * Adds schemaVersion field and validates structure.
+     */
+    migrateV0ToV1(entry) {
+        // Validate structure
+        if (!entry || !entry.data) return null;
+
+        try {
+            // We can use the existing validation logic
+            this.validateAnalysisData(entry.data);
+        } catch (e) {
+            console.warn('[PerspectivePrismClient] V0->V1 Migration: Data validation failed:', e);
+            return null;
+        }
+
+        // Transform
+        const newEntry = { ...entry };
+        newEntry.schemaVersion = 1;
+        // Remove legacy version field if present
+        if (newEntry.version) {
+            delete newEntry.version;
+        }
+
+        return newEntry;
     }
 
     logError(context, error) {
