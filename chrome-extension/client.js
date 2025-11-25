@@ -12,14 +12,8 @@ class PerspectivePrismClient {
         this.MAX_REQUEST_AGE = 300000; // 5 minutes
 
         // Cache Configuration
-        this.CURRENT_SCHEMA_VERSION = 1;
         this.CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
         this.MAX_CACHE_ITEMS = 50;
-
-        // Migration Registry
-        this.SCHEMA_MIGRATIONS = {
-            0: this.migrateV0ToV1.bind(this)
-        };
 
         // Recover persisted requests on startup
         this.recoverPersistedRequests();
@@ -383,7 +377,7 @@ class PerspectivePrismClient {
     async saveToCache(videoId, data) {
         const key = `cache_${videoId}`;
         const entry = {
-            schemaVersion: this.CURRENT_SCHEMA_VERSION,
+            schemaVersion: PerspectivePrismClient.CURRENT_SCHEMA_VERSION,
             timestamp: Date.now(),
             lastAccessed: Date.now(),
             data: data
@@ -455,6 +449,8 @@ class PerspectivePrismClient {
         }
     }
 
+
+
     /**
      * Migrates a cache entry to the current schema version.
      * @param {Object} entry - The cache entry to migrate.
@@ -464,21 +460,21 @@ class PerspectivePrismClient {
         let currentVersion = entry.schemaVersion || 0;
 
         // If it's already current, return it
-        if (currentVersion === this.CURRENT_SCHEMA_VERSION) {
+        if (currentVersion === PerspectivePrismClient.CURRENT_SCHEMA_VERSION) {
             return entry;
         }
 
         // If it's newer than what we know, discard it (forward compatibility)
-        if (currentVersion > this.CURRENT_SCHEMA_VERSION) {
-            console.warn(`[PerspectivePrismClient] Cache entry version ${currentVersion} is newer than supported ${this.CURRENT_SCHEMA_VERSION}`);
+        if (currentVersion > PerspectivePrismClient.CURRENT_SCHEMA_VERSION) {
+            console.warn(`[PerspectivePrismClient] Cache entry version ${currentVersion} is newer than supported ${PerspectivePrismClient.CURRENT_SCHEMA_VERSION}`);
             return null;
         }
 
         // Apply migrations sequentially
         let migratedEntry = { ...entry }; // Shallow copy to avoid mutating original if we fail mid-way (though we return null anyway)
 
-        while (currentVersion < this.CURRENT_SCHEMA_VERSION) {
-            const migrationFn = this.SCHEMA_MIGRATIONS[currentVersion];
+        while (currentVersion < PerspectivePrismClient.CURRENT_SCHEMA_VERSION) {
+            const migrationFn = PerspectivePrismClient.SCHEMA_MIGRATIONS[currentVersion];
             if (!migrationFn) {
                 console.error(`[PerspectivePrismClient] No migration function for version ${currentVersion}`);
                 return null;
@@ -486,7 +482,19 @@ class PerspectivePrismClient {
 
             console.log(`[PerspectivePrismClient] Migrating cache entry from v${currentVersion} to v${currentVersion + 1}`);
             try {
-                const result = migrationFn(migratedEntry);
+                // Bind 'this' to the migration function if it needs instance context (e.g. validateAnalysisData)
+                // Since we defined migrations as static/bound in constructor before, now they are static map.
+                // But validateAnalysisData is an instance method.
+                // We need to handle this carefully.
+                // Option 1: Pass 'this' as context to migration function.
+                // Option 2: Make migration functions static or standalone.
+                // Given validateAnalysisData is instance method, let's bind it when calling or pass context.
+                // Actually, the previous implementation bound it in constructor: `0: this.migrateV0ToV1.bind(this)`
+                // Now we are moving to static.
+                // Let's define the static map to use a static version of migrateV0ToV1 or pass the client instance.
+                // Simpler: Call the function with `this` as the context: migrationFn.call(this, migratedEntry)
+                const result = migrationFn.call(this, migratedEntry);
+
                 if (!result) {
                     console.warn(`[PerspectivePrismClient] Migration from v${currentVersion} failed (returned null)`);
                     return null;
@@ -776,6 +784,15 @@ class PerspectivePrismClient {
         return true;
     }
 }
+
+// Static Constants
+PerspectivePrismClient.CURRENT_SCHEMA_VERSION = 1;
+PerspectivePrismClient.SCHEMA_MIGRATIONS = {
+    0: function (entry) {
+        // Use 'this' to access instance methods like validateAnalysisData
+        return this.migrateV0ToV1(entry);
+    }
+};
 
 class ValidationError extends Error {
     constructor(message) {

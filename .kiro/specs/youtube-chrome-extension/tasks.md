@@ -93,25 +93,25 @@
     - [x] Improve error logging
     - _Requirements: 3.5_
 
-  - [x] 4. Verify Backend Connection
-    - [x] 4.1 Verify end-to-end flow
-      - [x] Ensure backend is running
-      - [x] Configure CORS for extension
-    - **Cache key design decision:**
-      - Primary strategy: Simple key = `cache_{videoId}`
-      - Rationale: One analysis per video (latest overwrites previous)
+- [x] 4. Verify Backend Connection
+  - [x] 4.1 Verify end-to-end flow
+    - [x] Ensure backend is running
+    - [x] Configure CORS for extension
+  - **Cache key design decision:**
+    - Primary strategy: Simple key = `cache_{videoId}`
+    - Rationale: One analysis per video (latest overwrites previous)
     - Confirmed backend receives request, processes (with quota limits), and returns result.
     - Optimized claim limit to 3 to prevent timeouts.
-      - Alternative considered: Composite key = `cache_{videoId}_{timestamp}`
-        - Rejected: Would allow multiple analyses per video (storage bloat)
-        - Rejected: Complicates eviction and lookup
-    - **Key implications:**
-      - Uniqueness: One cached result per video ID
-      - Eviction: LRU based on timestamp field within entry
-      - Indexing: Direct lookup by video ID (O(1))
-      - Refresh: New analysis overwrites existing cache entry
-    - Document key format in code comments and design doc
-    - _Requirements: 5.1, 5.2_
+    - Alternative considered: Composite key = `cache_{videoId}_{timestamp}`
+      - Rejected: Would allow multiple analyses per video (storage bloat)
+      - Rejected: Complicates eviction and lookup
+  - **Key implications:**
+    - Uniqueness: One cached result per video ID
+    - Eviction: LRU based on timestamp field within entry
+    - Indexing: Direct lookup by video ID (O(1))
+    - Refresh: New analysis overwrites existing cache entry
+  - Document key format in code comments and design doc
+  - _Requirements: 5.1, 5.2_
   
   - [ ] 4.2 Implement schema migration registry
     - **Migration function pattern:**

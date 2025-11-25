@@ -1256,32 +1256,65 @@ interface RequestMetrics {
   timestamp: number;
 }
 
-// Cache manager with statistics tracking
+// Cache manager with statistics tracking and schema migration
 class CacheManager {
   private readonly CACHE_KEY_PREFIX = 'cache_';
   private readonly METADATA_KEY = 'cache_metadata';
+  
+  // Schema Versioning Constants
+  private static readonly CURRENT_SCHEMA_VERSION = 1;
+  private static readonly SCHEMA_MIGRATIONS = {
+    0: (entry: any) => {
+      // Migration v0 -> v1
+      return { ...entry, schemaVersion: 1 };
+    }
+  };
+
   private cacheDuration: number; // hours
   
   constructor(cacheDuration: number = 24) {
     this.cacheDuration = cacheDuration;
   }
   
-  // Get cached analysis data
+  // Get cached analysis data with automatic migration
   async get(videoId: string): Promise<AnalysisData | null> {
     const key = this.CACHE_KEY_PREFIX + videoId;
     
     try {
       const result = await chrome.storage.local.get(key);
-      const entry: CacheEntry | undefined = result[key];
+      let entry: CacheEntry | undefined = result[key];
       
       if (!entry) {
         return null;
       }
       
-      // Check if expired
+      // Check expiration
       if (this.isExpired(entry)) {
         await this.remove(videoId);
         return null;
+      }
+
+      // Check Schema Version
+      const entryVersion = entry.schemaVersion || 0;
+
+      // 1. Future Version: Treat as cache miss (Forward Compatibility)
+      if (entryVersion > CacheManager.CURRENT_SCHEMA_VERSION) {
+        console.warn(`Cache entry version ${entryVersion} is newer than supported ${CacheManager.CURRENT_SCHEMA_VERSION}`);
+        await this.remove(videoId);
+        return null;
+      }
+
+      // 2. Older Version: Attempt Migration
+      if (entryVersion < CacheManager.CURRENT_SCHEMA_VERSION) {
+        const migratedEntry = await this.migrateEntry(entry);
+        if (!migratedEntry) {
+           // Migration failed, treat as miss
+           await this.remove(videoId);
+           return null;
+        }
+        // Migration successful, update entry and persist asynchronously
+        entry = migratedEntry;
+        this.set(videoId, entry.data).catch(console.error);
       }
       
       return entry.data;
@@ -1291,7 +1324,34 @@ class CacheManager {
       return null;
     }
   }
-  
+
+  /**
+   * Migrate a cache entry to the current schema version
+   */
+  private async migrateEntry(entry: any): Promise<CacheEntry | null> {
+    let currentVersion = entry.schemaVersion || 0;
+    let migratedEntry = { ...entry };
+
+    while (currentVersion < CacheManager.CURRENT_SCHEMA_VERSION) {
+      const migrationFn = CacheManager.SCHEMA_MIGRATIONS[currentVersion];
+      if (!migrationFn) {
+        console.error(`No migration function for version ${currentVersion}`);
+        return null;
+      }
+
+      try {
+        migratedEntry = migrationFn(migratedEntry);
+        if (!migratedEntry) return null;
+        currentVersion++;
+        migratedEntry.schemaVersion = currentVersion;
+      } catch (e) {
+        console.error(`Migration failed from v${currentVersion}`, e);
+        return null;
+      }
+    }
+    return migratedEntry;
+  }
+
   /**
    * Set cached analysis data with validation
    * 

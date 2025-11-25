@@ -9,30 +9,32 @@
             padding: 20px;
         }
 
-        .pass {
-            color: green;
-            font-weight: bold;
-        }
+        console.log=(...args)=> {
 
-        .fail {
-            color: red;
-            font-weight: bold;
-        }
+            .pass {
+                color: green;
+                font-weight: bold;
+            }
 
-        .log {
-            margin-top: 10px;
-            border-top: 1px solid #ccc;
-            padding-top: 10px;
-            white-space: pre-wrap;
-            font-family: monospace;
-        }
+            .fail {
+                color: red;
+                font-weight: bold;
+            }
 
-        #json-output {
-            background: #f5f5f5;
-            padding: 10px;
-            border: 1px solid #ddd;
-            margin-top: 10px;
-        }
+            .log {
+                margin-top: 10px;
+                border-top: 1px solid #ccc;
+                padding-top: 10px;
+                white-space: pre-wrap;
+                font-family: monospace;
+            }
+
+            #json-output {
+                background: #f5f5f5;
+                padding: 10px;
+                border: 1px solid #ddd;
+                margin-top: 10px;
+            }
     </style>
 </head>
 
@@ -136,22 +138,18 @@
                             ${result.data.claims.map(c => `<li><b>${escaped(c.claim_text)}</b><br>Assessment: ${escaped(c.truth_profile.overall_assessment)}</li>`).join('')}
                         </ul>
                     `;
-                <ul>
-                    ${result.data.claims.map(c => `<li><b>${c.claim_text}</b><br>Assessment: ${c.truth_profile.overall_assessment}</li>`).join('')}
-                </ul>
-                    `;
-                    jsonOutput.textContent = JSON.stringify(result.data, null, 2);
-                } else {
-                    statusDiv.innerHTML = '<span class="fail">Analysis Failed</span>';
-                    resultsDiv.textContent = result.error;
-                    jsonOutput.textContent = JSON.stringify(result, null, 2);
-                }
-
-            } catch (e) {
-                console.error('Test failed with exception:', e);
-                statusDiv.innerHTML = '<span class="fail">Test Exception</span>';
-                resultsDiv.textContent = e.message;
+                jsonOutput.textContent = JSON.stringify(result.data, null, 2);
+            } else {
+                statusDiv.innerHTML = '<span class="fail">Analysis Failed</span>';
+                resultsDiv.textContent = result.error;
+                jsonOutput.textContent = JSON.stringify(result, null, 2);
             }
+
+        } catch (e) {
+            console.error('Test failed with exception:', e);
+            statusDiv.innerHTML = '<span class="fail">Test Exception</span>';
+            resultsDiv.textContent = e.message;
+        }
         }
 
         // Run automatically
