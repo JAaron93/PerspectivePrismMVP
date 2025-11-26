@@ -253,6 +253,48 @@ interface ProgressData {
 }
 
 // ============================================================================
+// MESSAGE RETRY TYPES
+// ============================================================================
+
+/**
+ * Options for sendMessageWithRetry function
+ */
+interface MessageRetryOptions {
+  /** Per-request timeout in milliseconds (default: 5000) */
+  timeout?: number;
+
+  /** Maximum number of retry attempts (default: 4) */
+  maxAttempts?: number;
+
+  /** Custom backoff delays in milliseconds (default: [0, 500, 1000, 2000]) */
+  backoffDelays?: number[];
+}
+
+/**
+ * Internal retry state for message requests
+ * Used for tracking retry attempts and errors
+ */
+interface MessageRetryState {
+  /** Unique request identifier */
+  requestId: string;
+
+  /** Message being sent */
+  message: any;
+
+  /** Current attempt number (0-indexed) */
+  attempt: number;
+
+  /** Maximum number of attempts */
+  maxAttempts: number;
+
+  /** Backoff delays for each attempt */
+  backoffDelays: number[];
+
+  /** Last error encountered (if any) */
+  lastError?: Error;
+}
+
+// ============================================================================
 // ERROR TYPES
 // ============================================================================
 

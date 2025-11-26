@@ -1,6 +1,6 @@
 // Content script for Perspective Prism
 
-console.log('Perspective Prism content script loaded');
+console.log("Perspective Prism content script loaded");
 
 // State
 let currentVideoId = null;
@@ -8,241 +8,280 @@ let analysisPanel = null;
 let analysisButton = null;
 
 // Constants
-const BUTTON_ID = 'pp-analysis-button';
-const PANEL_ID = 'pp-analysis-panel';
+const BUTTON_ID = "pp-analysis-button";
+const PANEL_ID = "pp-analysis-panel";
 
 // --- Video ID Extraction ---
 
 function isValidVideoId(id) {
-    // YouTube video IDs are exactly 11 characters
-    // Valid characters: A-Z, a-z, 0-9, underscore, hyphen
-    return /^[a-zA-Z0-9_-]{11}$/.test(id);
+  // YouTube video IDs are exactly 11 characters
+  // Valid characters: A-Z, a-z, 0-9, underscore, hyphen
+  return /^[a-zA-Z0-9_-]{11}$/.test(id);
 }
 
 function extractVideoId() {
-    // Strategy 1: Standard watch URL parameter (?v=VIDEO_ID)
-    const urlParams = new URLSearchParams(window.location.search);
-    const watchParam = urlParams.get('v');
-    if (watchParam && isValidVideoId(watchParam)) {
-        console.debug('[Perspective Prism] Extracted Video ID via watch param:', watchParam);
-        return watchParam;
-    }
+  // Strategy 1: Standard watch URL parameter (?v=VIDEO_ID)
+  const urlParams = new URLSearchParams(window.location.search);
+  const watchParam = urlParams.get("v");
+  if (watchParam && isValidVideoId(watchParam)) {
+    console.debug(
+      "[Perspective Prism] Extracted Video ID via watch param:",
+      watchParam,
+    );
+    return watchParam;
+  }
 
-    const pathname = window.location.pathname;
+  const pathname = window.location.pathname;
 
-    // Strategy 2: Shorts format: /shorts/VIDEO_ID
-    const shortsMatch = pathname.match(/\/shorts\/([A-Za-z0-9_-]+)/);
-    if (shortsMatch && isValidVideoId(shortsMatch[1])) {
-        console.debug('[Perspective Prism] Extracted Video ID via shorts path:', shortsMatch[1]);
-        return shortsMatch[1];
-    }
+  // Strategy 2: Shorts format: /shorts/VIDEO_ID
+  const shortsMatch = pathname.match(/\/shorts\/([A-Za-z0-9_-]+)/);
+  if (shortsMatch && isValidVideoId(shortsMatch[1])) {
+    console.debug(
+      "[Perspective Prism] Extracted Video ID via shorts path:",
+      shortsMatch[1],
+    );
+    return shortsMatch[1];
+  }
 
-    // Strategy 3: Embed format: /embed/VIDEO_ID
-    const embedMatch = pathname.match(/\/embed\/([A-Za-z0-9_-]+)/);
-    if (embedMatch && isValidVideoId(embedMatch[1])) {
-        console.debug('[Perspective Prism] Extracted Video ID via embed path:', embedMatch[1]);
-        return embedMatch[1];
-    }
+  // Strategy 3: Embed format: /embed/VIDEO_ID
+  const embedMatch = pathname.match(/\/embed\/([A-Za-z0-9_-]+)/);
+  if (embedMatch && isValidVideoId(embedMatch[1])) {
+    console.debug(
+      "[Perspective Prism] Extracted Video ID via embed path:",
+      embedMatch[1],
+    );
+    return embedMatch[1];
+  }
 
-    // Strategy 4: Legacy format: /v/VIDEO_ID
-    const legacyMatch = pathname.match(/\/v\/([A-Za-z0-9_-]+)/);
-    if (legacyMatch && isValidVideoId(legacyMatch[1])) {
-        console.debug('[Perspective Prism] Extracted Video ID via legacy path:', legacyMatch[1]);
-        return legacyMatch[1];
-    }
+  // Strategy 4: Legacy format: /v/VIDEO_ID
+  const legacyMatch = pathname.match(/\/v\/([A-Za-z0-9_-]+)/);
+  if (legacyMatch && isValidVideoId(legacyMatch[1])) {
+    console.debug(
+      "[Perspective Prism] Extracted Video ID via legacy path:",
+      legacyMatch[1],
+    );
+    return legacyMatch[1];
+  }
 
-    // Strategy 5: Hash fragment (e.g. #v=VIDEO_ID)
-    const hashMatch = window.location.hash.match(/[?&]v=([A-Za-z0-9_-]+)/);
-    if (hashMatch && isValidVideoId(hashMatch[1])) {
-        console.debug('[Perspective Prism] Extracted Video ID via hash fragment:', hashMatch[1]);
-        return hashMatch[1];
-    }
+  // Strategy 5: Hash fragment (e.g. #v=VIDEO_ID)
+  const hashMatch = window.location.hash.match(/[?&]v=([A-Za-z0-9_-]+)/);
+  if (hashMatch && isValidVideoId(hashMatch[1])) {
+    console.debug(
+      "[Perspective Prism] Extracted Video ID via hash fragment:",
+      hashMatch[1],
+    );
+    return hashMatch[1];
+  }
 
-    return null;
+  return null;
 }
 
 // --- UI Injection ---
 
 function createAnalysisButton() {
-    const btn = document.createElement('button');
-    btn.id = BUTTON_ID;
-    btn.className = 'pp-ext-button';
-    btn.setAttribute('data-pp-analysis-button', 'true'); // Duplication prevention
+  const btn = document.createElement("button");
+  btn.id = BUTTON_ID;
+  btn.className = "pp-ext-button";
+  btn.setAttribute("data-pp-analysis-button", "true"); // Duplication prevention
 
-    // Accessibility attributes
-    btn.setAttribute('aria-label', 'Analyze video claims');
-    btn.setAttribute('role', 'button');
-    btn.setAttribute('tabindex', '0');
+  // Accessibility attributes
+  btn.setAttribute("aria-label", "Analyze video claims");
+  btn.setAttribute("role", "button");
+  btn.setAttribute("tabindex", "0");
 
-    btn.innerHTML = `
+  btn.innerHTML = `
         <span class="pp-icon">🔍</span>
         <span>Analyze Claims</span>
     `;
-    btn.onclick = handleAnalysisClick;
-    return btn;
+  btn.onclick = handleAnalysisClick;
+  return btn;
 }
 
 // Metrics State
 const metrics = {
-    attempts: 0,
-    successes: 0,
-    failures: 0,
-    bySelector: {} // Map of selector -> count
+  attempts: 0,
+  successes: 0,
+  failures: 0,
+  bySelector: {}, // Map of selector -> count
 };
 
 function loadMetrics() {
-    chrome.storage.local.get(['selectorMetrics'], (result) => {
-        if (result.selectorMetrics) {
-            Object.assign(metrics, result.selectorMetrics);
-            console.debug('[Perspective Prism] Metrics loaded:', metrics);
-        }
-    });
+  chrome.storage.local.get(["selectorMetrics"], (result) => {
+    if (result.selectorMetrics) {
+      Object.assign(metrics, result.selectorMetrics);
+      console.debug("[Perspective Prism] Metrics loaded:", metrics);
+    }
+  });
 }
 
 function saveMetrics() {
-    chrome.storage.local.set({ selectorMetrics: metrics }, () => {
-        if (chrome.runtime.lastError) {
-            console.error('[Perspective Prism] Failed to save metrics:', chrome.runtime.lastError);
-        }
-        // console.debug('[Perspective Prism] Metrics saved');
-    });
+  chrome.storage.local.set({ selectorMetrics: metrics }, () => {
+    if (chrome.runtime.lastError) {
+      console.error(
+        "[Perspective Prism] Failed to save metrics:",
+        chrome.runtime.lastError,
+      );
+    }
+    // console.debug('[Perspective Prism] Metrics saved');
+  });
 }
 
 function printMetrics() {
-    console.table(metrics);
-    console.table(metrics.bySelector);
+  console.table(metrics);
+  console.table(metrics.bySelector);
 }
 
 // Expose for debugging
 window.ppPrintMetrics = printMetrics;
 
 function injectButton() {
-    // Check for existing button using both ID and data attribute
-    if (document.getElementById(BUTTON_ID) || document.querySelector('[data-pp-analysis-button="true"]')) {
-        return;
-    }
+  // Check for existing button using both ID and data attribute
+  if (
+    document.getElementById(BUTTON_ID) ||
+    document.querySelector('[data-pp-analysis-button="true"]')
+  ) {
+    return;
+  }
 
-    metrics.attempts++;
+  metrics.attempts++;
 
-    // Selectors from design doc
-    const selectors = [
-        '#top-level-buttons-computed', // Primary: Action buttons bar
-        '#menu-container',             // Fallback 1: Alternative menu container
-        '#info-contents'               // Fallback 2: Metadata area
-    ];
+  // Selectors from design doc
+  const selectors = [
+    "#top-level-buttons-computed", // Primary: Action buttons bar
+    "#menu-container", // Fallback 1: Alternative menu container
+    "#info-contents", // Fallback 2: Metadata area
+  ];
 
-    let container = null;
-    let usedSelector = null;
+  let container = null;
+  let usedSelector = null;
 
-    for (const selector of selectors) {
-        container = document.querySelector(selector);
-        if (container) {
-            usedSelector = selector;
-            break;
-        }
-    }
-
+  for (const selector of selectors) {
+    container = document.querySelector(selector);
     if (container) {
-        analysisButton = createAnalysisButton();
-        // Insert as first child to ensure visibility
-        container.insertBefore(analysisButton, container.firstChild);
-        console.log(`[Perspective Prism] Button injected using selector: ${usedSelector}`);
-
-        metrics.successes++;
-        metrics.bySelector[usedSelector] = (metrics.bySelector[usedSelector] || 0) + 1;
-        saveMetrics();
-    } else {
-        console.warn('[Perspective Prism] No suitable container found for button injection. Retrying later.');
-        metrics.failures++;
-        saveMetrics();
+      usedSelector = selector;
+      break;
     }
+  }
+
+  if (container) {
+    analysisButton = createAnalysisButton();
+    // Insert as first child to ensure visibility
+    container.insertBefore(analysisButton, container.firstChild);
+    console.log(
+      `[Perspective Prism] Button injected using selector: ${usedSelector}`,
+    );
+
+    metrics.successes++;
+    metrics.bySelector[usedSelector] =
+      (metrics.bySelector[usedSelector] || 0) + 1;
+    saveMetrics();
+  } else {
+    console.warn(
+      "[Perspective Prism] No suitable container found for button injection. Retrying later.",
+    );
+    metrics.failures++;
+    saveMetrics();
+  }
 }
 
 // --- Interaction Handling ---
 
-function handleAnalysisClick() {
-    if (!currentVideoId) return;
+async function handleAnalysisClick() {
+  if (!currentVideoId) return;
 
-    setButtonState('loading');
+  setButtonState("loading");
 
-    // Check cache first (handled by client.js in background, but we send message)
-    chrome.runtime.sendMessage({
-        type: 'ANALYZE_VIDEO',
-        videoId: currentVideoId
-    }, (response) => {
-        if (chrome.runtime.lastError) {
-            console.error('Message failed:', chrome.runtime.lastError);
-            setButtonState('error');
-            showError('Extension connection failed. Please reload.');
-            return;
-        }
+  try {
+    const response = await sendMessageWithRetry(
+      {
+        type: "ANALYZE_VIDEO",
+        videoId: currentVideoId,
+      },
+      {
+        timeout: 5000, // 5 second per-request timeout
+        maxAttempts: 4,
+      },
+    );
 
-        if (response && response.success) {
-            setButtonState('success');
-            showResults(response.data);
-        } else {
-            setButtonState('error');
-            showError(response?.error || 'Analysis failed');
-        }
-    });
+    if (response && response.success) {
+      setButtonState("success");
+      showResults(response.data);
+    } else {
+      setButtonState("error");
+      showError(response?.error || "Analysis failed");
+    }
+  } catch (error) {
+    console.error(
+      "[Perspective Prism] Analysis request failed after retries:",
+      error,
+    );
+    setButtonState("error");
+    showError(error.message || "Connection failed. Please reload the page.");
+  }
 }
 
 function setButtonState(state) {
-    if (!analysisButton) return;
+  if (!analysisButton) return;
 
-    const textSpan = analysisButton.querySelector('span:last-child');
-    const iconSpan = analysisButton.querySelector('.pp-icon');
+  const textSpan = analysisButton.querySelector("span:last-child");
+  const iconSpan = analysisButton.querySelector(".pp-icon");
 
-    if (!textSpan || !iconSpan) return;
+  if (!textSpan || !iconSpan) return;
 
-    // Reset ARIA busy state
-    analysisButton.setAttribute('aria-busy', 'false');
-    analysisButton.classList.remove('pp-state-error', 'pp-state-success');
+  // Reset ARIA busy state
+  analysisButton.setAttribute("aria-busy", "false");
+  analysisButton.classList.remove("pp-state-error", "pp-state-success");
 
-    switch (state) {
-        case 'loading':
-            textSpan.textContent = 'Analyzing...';
-            iconSpan.textContent = '⏳';
-            analysisButton.disabled = true;
-            analysisButton.setAttribute('aria-label', 'Analysis in progress');
-            analysisButton.setAttribute('aria-busy', 'true');
-            break;
-        case 'success':
-            textSpan.textContent = 'Analyzed';
-            iconSpan.textContent = '✅';
-            analysisButton.disabled = false;
-            analysisButton.setAttribute('aria-label', 'Analysis complete. Click to view results.');
-            analysisButton.classList.add('pp-state-success');
-            break;
-        case 'error':
-            textSpan.textContent = 'Retry Analysis';
-            iconSpan.textContent = '⚠️';
-            analysisButton.disabled = false;
-            analysisButton.setAttribute('aria-label', 'Analysis failed. Click to retry.');
-            analysisButton.classList.add('pp-state-error');
-            break;
-        default: // idle
-            textSpan.textContent = 'Analyze Claims';
-            iconSpan.textContent = '🔍';
-            analysisButton.disabled = false;
-            analysisButton.setAttribute('aria-label', 'Analyze video claims');
-    }
+  switch (state) {
+    case "loading":
+      textSpan.textContent = "Analyzing...";
+      iconSpan.textContent = "⏳";
+      analysisButton.disabled = true;
+      analysisButton.setAttribute("aria-label", "Analysis in progress");
+      analysisButton.setAttribute("aria-busy", "true");
+      break;
+    case "success":
+      textSpan.textContent = "Analyzed";
+      iconSpan.textContent = "✅";
+      analysisButton.disabled = false;
+      analysisButton.setAttribute(
+        "aria-label",
+        "Analysis complete. Click to view results.",
+      );
+      analysisButton.classList.add("pp-state-success");
+      break;
+    case "error":
+      textSpan.textContent = "Retry Analysis";
+      iconSpan.textContent = "⚠️";
+      analysisButton.disabled = false;
+      analysisButton.setAttribute(
+        "aria-label",
+        "Analysis failed. Click to retry.",
+      );
+      analysisButton.classList.add("pp-state-error");
+      break;
+    default: // idle
+      textSpan.textContent = "Analyze Claims";
+      iconSpan.textContent = "🔍";
+      analysisButton.disabled = false;
+      analysisButton.setAttribute("aria-label", "Analyze video claims");
+  }
 }
 
 // --- Results Display ---
 
 function showResults(data) {
-    removePanel(); // Remove existing
+  removePanel(); // Remove existing
 
-    const panel = document.createElement('div');
-    panel.id = PANEL_ID;
+  const panel = document.createElement("div");
+  panel.id = PANEL_ID;
 
-    // Shadow DOM for style isolation
-    const shadow = panel.attachShadow({ mode: 'open' });
+  // Shadow DOM for style isolation
+  const shadow = panel.attachShadow({ mode: "open" });
 
-    // Styles
-    const style = document.createElement('style');
-    style.textContent = `
+  // Styles
+  const style = document.createElement("style");
+  style.textContent = `
         :host {
             position: fixed;
             top: 60px;
@@ -296,81 +335,90 @@ function showResults(data) {
         .perspectives { margin-top: 8px; font-size: 13px; color: #606060; }
     `;
 
-    // Content
-    const container = document.createElement('div');
+  // Content
+  const container = document.createElement("div");
 
-    // Header
-    const header = document.createElement('div');
-    header.className = 'header';
-    header.innerHTML = `
+  // Header
+  const header = document.createElement("div");
+  header.className = "header";
+  header.innerHTML = `
         <span class="title">Analysis Results</span>
         <button class="close-btn">×</button>
     `;
-    header.querySelector('.close-btn').onclick = removePanel;
+  header.querySelector(".close-btn").onclick = removePanel;
 
-    // Claims
-    const content = document.createElement('div');
-    content.className = 'content';
+  // Claims
+  const content = document.createElement("div");
+  content.className = "content";
 
-    if (data.claims && data.claims.length > 0) {
-        data.claims.forEach(claim => {
-            const card = document.createElement('div');
-            card.className = 'claim-card';
+  if (data.claims && data.claims.length > 0) {
+    data.claims.forEach((claim) => {
+      const card = document.createElement("div");
+      card.className = "claim-card";
 
-            const assessment = claim.truth_profile?.overall_assessment || 'Unknown';
-            // Simple heuristic for color class
-            let assessClass = 'low';
-            if (assessment.toLowerCase().includes('true') || assessment.toLowerCase().includes('accurate')) assessClass = 'high';
-            else if (assessment.toLowerCase().includes('false') || assessment.toLowerCase().includes('misleading')) assessClass = 'medium';
+      const assessment = claim.truth_profile?.overall_assessment || "Unknown";
+      // Simple heuristic for color class
+      let assessClass = "low";
+      if (
+        assessment.toLowerCase().includes("true") ||
+        assessment.toLowerCase().includes("accurate")
+      )
+        assessClass = "high";
+      else if (
+        assessment.toLowerCase().includes("false") ||
+        assessment.toLowerCase().includes("misleading")
+      )
+        assessClass = "medium";
 
-            const claimTextDiv = document.createElement('div');
-            claimTextDiv.className = 'claim-text';
-            claimTextDiv.textContent = claim.claim_text;
+      const claimTextDiv = document.createElement("div");
+      claimTextDiv.className = "claim-text";
+      claimTextDiv.textContent = claim.claim_text;
 
-            const assessmentDiv = document.createElement('div');
-            assessmentDiv.className = `assessment ${assessClass}`;
-            assessmentDiv.textContent = assessment;
+      const assessmentDiv = document.createElement("div");
+      assessmentDiv.className = `assessment ${assessClass}`;
+      assessmentDiv.textContent = assessment;
 
-            const perspectivesDiv = document.createElement('div');
-            perspectivesDiv.className = 'perspectives';
-            Object.entries(claim.truth_profile?.perspectives || {}).forEach(([key, val]) => {
-                const perDiv = document.createElement('div');
-                const strong = document.createElement('strong');
-                strong.textContent = key + ':';
-                perDiv.appendChild(strong);
-                perDiv.appendChild(document.createTextNode(' ' + val.assessment));
-                perspectivesDiv.appendChild(perDiv);
-            });
+      const perspectivesDiv = document.createElement("div");
+      perspectivesDiv.className = "perspectives";
+      Object.entries(claim.truth_profile?.perspectives || {}).forEach(
+        ([key, val]) => {
+          const perDiv = document.createElement("div");
+          const strong = document.createElement("strong");
+          strong.textContent = key + ":";
+          perDiv.appendChild(strong);
+          perDiv.appendChild(document.createTextNode(" " + val.assessment));
+          perspectivesDiv.appendChild(perDiv);
+        },
+      );
 
-            card.appendChild(claimTextDiv);
-            card.appendChild(assessmentDiv);
-            card.appendChild(perspectivesDiv);
-            content.appendChild(card);
+      card.appendChild(claimTextDiv);
+      card.appendChild(assessmentDiv);
+      card.appendChild(perspectivesDiv);
+      content.appendChild(card);
+    });
+  } else {
+    content.innerHTML = "<p>No claims extracted.</p>";
+  }
 
-        });
-    } else {
-        content.innerHTML = '<p>No claims extracted.</p>';
-    }
+  container.appendChild(header);
+  container.appendChild(content);
 
-    container.appendChild(header);
-    container.appendChild(content);
+  shadow.appendChild(style);
+  shadow.appendChild(container);
 
-    shadow.appendChild(style);
-    shadow.appendChild(container);
-
-    document.body.appendChild(panel);
-    analysisPanel = panel;
+  document.body.appendChild(panel);
+  analysisPanel = panel;
 }
 
 function showError(msg) {
-    alert(`Perspective Prism Error: ${msg}`);
+  alert(`Perspective Prism Error: ${msg}`);
 }
 
 function removePanel() {
-    if (analysisPanel) {
-        analysisPanel.remove();
-        analysisPanel = null;
-    }
+  if (analysisPanel) {
+    analysisPanel.remove();
+    analysisPanel = null;
+  }
 }
 
 // --- Lifecycle ---
@@ -381,112 +429,115 @@ let observer = null;
 let debounceTimer = null;
 
 function handleMutations(mutations) {
-    if (debounceTimer) clearTimeout(debounceTimer);
+  if (debounceTimer) clearTimeout(debounceTimer);
 
-    debounceTimer = setTimeout(() => {
-        if (currentVideoId && !document.getElementById(BUTTON_ID)) {
-            console.log('[Perspective Prism] Mutation detected, re-injecting button...');
-            injectButton();
-        }
-    }, 500); // 500ms debounce
+  debounceTimer = setTimeout(() => {
+    if (currentVideoId && !document.getElementById(BUTTON_ID)) {
+      console.log(
+        "[Perspective Prism] Mutation detected, re-injecting button...",
+      );
+      injectButton();
+    }
+  }, 500); // 500ms debounce
 }
 
 function setupObservers() {
-    if (observer) {
-        observer.disconnect();
-    }
+  if (observer) {
+    observer.disconnect();
+  }
 
-    // Try to observe specific container first
-    const specificContainer = document.querySelector('#top-level-buttons-computed') ||
-        document.querySelector('#menu-container');
+  // Try to observe specific container first
+  const specificContainer =
+    document.querySelector("#top-level-buttons-computed") ||
+    document.querySelector("#menu-container");
 
-    if (specificContainer) {
-        console.log('[Perspective Prism] Observing specific container');
-        observer = new MutationObserver(handleMutations);
-        observer.observe(specificContainer, {
-            childList: true,
-            subtree: false // Performance optimization
-        });
-    } else {
-        console.log('[Perspective Prism] Observing document body (fallback)');
-        observer = new MutationObserver(handleMutations);
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true // Necessary for fallback
-        });
-    }
+  if (specificContainer) {
+    console.log("[Perspective Prism] Observing specific container");
+    observer = new MutationObserver(handleMutations);
+    observer.observe(specificContainer, {
+      childList: true,
+      subtree: false, // Performance optimization
+    });
+  } else {
+    console.log("[Perspective Prism] Observing document body (fallback)");
+    observer = new MutationObserver(handleMutations);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true, // Necessary for fallback
+    });
+  }
 }
 
 function handleNavigation() {
-    const vid = extractVideoId();
+  const vid = extractVideoId();
 
-    // Always re-setup observers on navigation as DOM might have changed significantly
-    setupObservers();
+  // Always re-setup observers on navigation as DOM might have changed significantly
+  setupObservers();
 
-    if (vid !== currentVideoId) {
-        currentVideoId = vid;
-        // Re-inject if needed or reset state
-        if (currentVideoId) {
-            injectButton();
-            setButtonState('idle');
-            removePanel();
-        }
-    } else if (currentVideoId && !document.getElementById(BUTTON_ID)) {
-        // Ensure button stays injected
-        injectButton();
+  if (vid !== currentVideoId) {
+    currentVideoId = vid;
+    // Re-inject if needed or reset state
+    if (currentVideoId) {
+      injectButton();
+      setButtonState("idle");
+      removePanel();
     }
+  } else if (currentVideoId && !document.getElementById(BUTTON_ID)) {
+    // Ensure button stays injected
+    injectButton();
+  }
 }
 
 function init() {
-    loadMetrics();
+  loadMetrics();
 
-    // Initial check
-    const newVideoId = extractVideoId();
-    if (newVideoId) {
-        currentVideoId = newVideoId;
-        injectButton();
-    }
+  // Initial check
+  const newVideoId = extractVideoId();
+  if (newVideoId) {
+    currentVideoId = newVideoId;
+    injectButton();
+  }
 
-    // Setup initial observers
-    setupObservers();
+  // Setup initial observers
+  setupObservers();
 
-    // URL-change detection for YouTube SPA navigation
-    // Track last URL to detect changes
-    let lastUrl = location.href;
+  // URL-change detection for YouTube SPA navigation
+  // Track last URL to detect changes
+  let lastUrl = location.href;
 
-    // Debounced handler with 150ms delay
-    let navDebounceTimer = null;
-    const debouncedNavigation = () => {
-        clearTimeout(navDebounceTimer);
-        navDebounceTimer = setTimeout(() => {
-            if (location.href !== lastUrl) {
-                lastUrl = location.href;
-                handleNavigation();
-            }
-        }, 150);
-    };
+  // Debounced handler with 150ms delay
+  let navDebounceTimer = null;
+  const debouncedNavigation = () => {
+    clearTimeout(navDebounceTimer);
+    navDebounceTimer = setTimeout(() => {
+      if (location.href !== lastUrl) {
+        lastUrl = location.href;
+        handleNavigation();
+      }
+    }, 150);
+  };
 
-    // Intercept pushState/replaceState (YouTube uses History API)
-    const originalPushState = history.pushState;
-    const originalReplaceState = history.replaceState;
+  // Intercept pushState/replaceState (YouTube uses History API)
+  const originalPushState = history.pushState;
+  const originalReplaceState = history.replaceState;
 
-    history.pushState = function (...args) {
-        originalPushState.apply(this, args);
-        debouncedNavigation();
-    };
+  history.pushState = function (...args) {
+    originalPushState.apply(this, args);
+    debouncedNavigation();
+  };
 
-    history.replaceState = function (...args) {
-        originalReplaceState.apply(this, args);
-        debouncedNavigation();
-    };
+  history.replaceState = function (...args) {
+    originalReplaceState.apply(this, args);
+    debouncedNavigation();
+  };
 
-    // Listen for back/forward navigation
-    window.addEventListener('popstate', debouncedNavigation);
+  // Listen for back/forward navigation
+  window.addEventListener("popstate", debouncedNavigation);
 }
 
 // Run
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
 } else {
-    init();
+  init();
 }

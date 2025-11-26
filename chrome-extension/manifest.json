@@ -1,52 +1,42 @@
 {
-    "manifest_version": 3,
-    "name": "Perspective Prism - YouTube Analyzer",
-    "version": "1.0.0",
-    "description": "Analyze YouTube videos for claims and perspectives",
-    "permissions": [
-        "storage",
-        "activeTab",
-        "alarms",
-        "notifications"
-    ],
-    "host_permissions": [
-        "https://*.youtube.com/*",
-        "https://youtu.be/*",
-        "https://*.youtube-nocookie.com/*",
-        "https://m.youtube.com/*"
-    ],
-    "background": {
-        "service_worker": "background.js"
-    },
-    "content_scripts": [
-        {
-            "matches": [
-                "https://www.youtube.com/watch*",
-                "https://m.youtube.com/watch*",
-                "https://youtu.be/*"
-            ],
-            "js": [
-                "config.js",
-                "content.js"
-            ],
-            "css": [
-                "content.css"
-            ],
-            "run_at": "document_idle"
-        }
-    ],
-    "action": {
-        "default_popup": "popup.html",
-        "default_icon": {
-            "16": "icons/icon16.png",
-            "48": "icons/icon48.png",
-            "128": "icons/icon128.png"
-        }
-    },
-    "options_page": "options.html",
-    "icons": {
-        "16": "icons/icon16.png",
-        "48": "icons/icon48.png",
-        "128": "icons/icon128.png"
+  "manifest_version": 3,
+  "name": "Perspective Prism - YouTube Analyzer",
+  "version": "1.0.0",
+  "description": "Analyze YouTube videos for claims and perspectives",
+  "permissions": ["storage", "activeTab", "alarms", "notifications"],
+  "host_permissions": [
+    "https://*.youtube.com/*",
+    "https://youtu.be/*",
+    "https://*.youtube-nocookie.com/*",
+    "https://m.youtube.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.youtube.com/watch*",
+        "https://m.youtube.com/watch*",
+        "https://youtu.be/*"
+      ],
+      "js": ["messaging.js", "config.js", "content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
     }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_page": "options.html",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
 }
