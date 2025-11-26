@@ -101,6 +101,9 @@ function loadMetrics() {
 
 function saveMetrics() {
     chrome.storage.local.set({ selectorMetrics: metrics }, () => {
+        if (chrome.runtime.lastError) {
+            console.error('[Perspective Prism] Failed to save metrics:', chrome.runtime.lastError);
+        }
         // console.debug('[Perspective Prism] Metrics saved');
     });
 }

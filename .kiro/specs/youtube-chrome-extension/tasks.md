@@ -221,7 +221,7 @@
       - Hook into section 12 navigation cleanup to avoid accumulating missed mutations
     - _Requirements: 2.5_
   
-  - [/] 5.5 Implement Analysis Button component
+  - [x] 5.5 Implement Analysis Button component
     - Create button element with proper ARIA attributes
     - Implement button states (idle, loading, error, success)
     - Add click handler to trigger analysis
@@ -229,7 +229,7 @@
     - _Requirements: 2.2, 2.3_
 
 - [ ] 6. Implement message passing between content script and background with MV3 recovery
-  - [ ] 6.1 Define message interfaces
+  - [x] 6.1 Define message interfaces
     - Create TypeScript interfaces for AnalysisRequest, CacheCheckRequest
     - Create interfaces for AnalysisResponse, CacheCheckResponse
     - Define AnalysisData and related types
