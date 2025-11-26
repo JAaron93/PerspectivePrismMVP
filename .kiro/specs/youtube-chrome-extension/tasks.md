@@ -171,7 +171,7 @@
       - If still not enough space, reject entry (oversized)
       - Log eviction events with video IDs and sizes
     - _Requirements: 5.1, 8.1, 8.2, 8.3, 8.4, 8.5_
-  - [x]* 4.7 Add quota monitoring metrics
+  - [x]\* 4.7 Add quota monitoring metrics
     - Track storage usage over time
     - Log eviction events
     - Monitor cache hit/miss rates
@@ -368,25 +368,25 @@
     - Display user-friendly error messages using ConfigValidator.getUrlError()
     - Disable Test/Save buttons when invalid
     - _Requirements: 1.3, 1.4, 1.5, 7.3, 7.4_
-  - [ ] 10.3 Implement Test Connection functionality
-    - Create testConnection() method pinging /health endpoint
-    - Implement 10-second timeout
-    - Show loading state (disable button, show spinner)
-    - Display success/failure messages
-    - Handle network errors, timeouts, HTTP errors
+  - [x] 10.3 Implement Test Connection functionality
+    - [x] Create testConnection() method pinging /health endpoint
+    - [x] Implement 10-second timeout
+    - [x] Show loading state (disable button, show spinner)
+    - [x] Display success/failure messages
+    - [x] Handle network errors, timeouts, HTTP errors
     - _Requirements: 1.3_
-  - [ ] 10.4 Implement settings persistence
-    - Load settings on page load using ConfigManager
-    - Implement save() handler with validation
-    - Show success message after save
-    - Handle save errors gracefully
+  - [x] 10.4 Implement settings persistence
+    - [x] Load settings on page load using ConfigManager
+    - [x] Implement save() handler with validation
+    - [x] Show success message after save
+    - [x] Handle save errors gracefully
     - _Requirements: 1.6_
-  - [ ] 10.5 Add privacy controls
-    - Add "Allow video analysis" checkbox
-    - Display backend URL warning
-    - Add "Clear All Cached Data" button
-    - Add "View Privacy Policy" link
-    - _Requirements: 7.1, 7.2, 7.7_
+  - [x] 10.5 Add privacy controls
+    - [x] Add "Allow video analysis" checkbox
+    - [x] Display backend URL warning
+    - [x] Add "Clear All Cached Data" button
+    - [x] Add "View Privacy Policy" link
+    - _Requirements: 1.5, 7.3, 7.4_
 
 - [ ] 11. Implement privacy and consent flow with versioning
   - [ ] 11.1 Create privacy notice dialog with "Learn More" functionality

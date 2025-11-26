@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -384,14 +384,12 @@
         color: #666;
         font-size: 14px;
       }
-
       /* Required field indicator */
       label[for="backend-url"]::after {
         content: " *";
         color: #c62828;
         font-weight: 600;
         margin-left: 2px;
-        aria-hidden: true;
       }
     </style>
   </head>
@@ -440,7 +438,11 @@
           </button>
         </div>
         <div id="backend-url-error" class="error-message" role="alert"></div>
-        <div id="backend-url-success" class="success-message" role="status"></div>
+        <div
+          id="backend-url-success"
+          class="success-message"
+          role="status"
+        ></div>
       </div>
     </section>
 
@@ -581,6 +583,7 @@
       <div id="save-error" class="error-message" role="alert"></div>
     </section>
 
+    <script src="config.js"></script>
     <script src="options.js"></script>
   </body>
 </html>
