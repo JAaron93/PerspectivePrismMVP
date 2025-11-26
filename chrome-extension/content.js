@@ -328,6 +328,118 @@ async function handleAnalysisClick() {
   }
 }
 
+async function handleRefreshClick() {
+  if (!currentVideoId || !analysisPanel) return;
+
+  // Add refreshing overlay to current panel
+  const shadow = analysisPanel.shadowRoot;
+  if (!shadow) return;
+
+  const refreshBtn = shadow.getElementById("pp-refresh-btn");
+  if (!refreshBtn) return;
+
+  refreshBtn.disabled = true;
+  refreshBtn.classList.add("refreshing");
+
+  // Create overlay
+  const overlay = document.createElement("div");
+  overlay.id = "pp-refresh-overlay";
+  overlay.style.cssText = `
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    border-radius: 12px;
+  `;
+  overlay.innerHTML = `
+    <div style="width: 48px; height: 48px; border: 4px solid #e5e5e5; border-top-color: #065fd4; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 12px;"></div>
+    <div style="font-size: 14px; font-weight: 500; color: #0f0f0f;">Refreshing analysis...</div>
+  `;
+
+  shadow.querySelector(":host").appendChild(overlay);
+
+  try {
+    // Send refresh request with cache bypass
+    const response = await sendMessageWithRetry(
+      {
+        type: "ANALYZE_VIDEO",
+        videoId: currentVideoId,
+        bypassCache: true, // Force fresh analysis
+      },
+      {
+        timeout: 5000,
+        maxAttempts: 4,
+      },
+    );
+
+    if (response && response.success) {
+      // Remove overlay and show fresh results
+      overlay.remove();
+      showResults(response.data, false); // Always fresh after refresh
+      setButtonState("success");
+    } else {
+      // Show error but keep previous results
+      overlay.remove();
+      refreshBtn.disabled = false;
+      refreshBtn.classList.remove("refreshing");
+
+      // Show error message in a toast/temporary notification
+      const errorToast = document.createElement("div");
+      errorToast.style.cssText = `
+        position: absolute;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #c5221f;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        z-index: 11;
+        animation: slideIn 0.3s ease-out;
+      `;
+      errorToast.textContent = response?.error || "Refresh failed";
+      shadow.querySelector(":host").appendChild(errorToast);
+
+      setTimeout(() => errorToast.remove(), 3000);
+    }
+  } catch (error) {
+    console.error("[Perspective Prism] Refresh failed:", error);
+
+    // Remove overlay and restore previous state
+    overlay.remove();
+    refreshBtn.disabled = false;
+    refreshBtn.classList.remove("refreshing");
+
+    // Show error toast
+    const errorToast = document.createElement("div");
+    errorToast.style.cssText = `
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #c5221f;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      z-index: 11;
+      animation: slideIn 0.3s ease-out;
+    `;
+    errorToast.textContent = "Refresh failed. Please try again.";
+    shadow.querySelector(":host").appendChild(errorToast);
+
+    setTimeout(() => errorToast.remove(), 3000);
+  }
+}
+
 function setButtonState(state) {
   if (!analysisButton) return;
 
@@ -462,11 +574,49 @@ function showResults(data, isCached = false) {
             transition: box-shadow 0.2s;
         }
         .claim-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .claim-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            cursor: pointer;
+            margin-bottom: 12px;
+            padding: 4px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .claim-header:hover {
+            background: #f9f9f9;
+        }
+        .claim-header:focus {
+            outline: 2px solid #065fd4;
+            outline-offset: 2px;
+        }
+        .toggle-btn {
+            background: none;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 8px;
+            color: #606060;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+        .claim-details {
+            max-height: 2000px;
+            opacity: 1;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+        }
+        .claim-details.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
         .claim-text { 
             font-weight: 500; 
             font-size: 14px;
-            margin-bottom: 12px;
             line-height: 1.4;
+            flex-grow: 1;
         }
         .assessment-badge { 
             display: inline-flex;
@@ -494,8 +644,10 @@ function showResults(data, isCached = false) {
             gap: 8px;
         }
         .perspective-row {
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: 120px 1fr auto 60px;
+            align-items: center;
+            gap: 8px;
             font-size: 13px;
             padding: 4px 0;
             border-bottom: 1px solid #f0f0f0;
@@ -503,6 +655,23 @@ function showResults(data, isCached = false) {
         .perspective-row:last-child { border-bottom: none; }
         .perspective-name { color: #606060; }
         .perspective-val { font-weight: 500; }
+        .confidence-bar {
+            height: 6px;
+            background: #e5e5e5;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .confidence-fill {
+            height: 100%;
+            background: #065fd4;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        .confidence-text {
+            font-size: 11px;
+            color: #606060;
+            text-align: right;
+        }
         
         .bias-tags {
             display: flex;
@@ -535,6 +704,27 @@ function showResults(data, isCached = false) {
             background: #c5221f;
             border-radius: 3px;
         }
+        .refresh-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: #606060;
+            transition: background 0.2s;
+            margin-right: 8px;
+        }
+        .refresh-btn:hover {
+            background: #e5e5e5;
+        }
+        .refresh-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .refreshing {
+            animation: spin 1s linear infinite;
+        }
     `;
 
   // Content Container
@@ -552,24 +742,58 @@ function showResults(data, isCached = false) {
         <div class="title" id="pp-panel-title">
             <span>🔍</span> Perspective Prism${cachedBadge}
         </div>
-        <button class="close-btn" aria-label="Close panel">×</button>
+        <div style="display: flex; align-items: center;">
+            <button class="refresh-btn" id="pp-refresh-btn" aria-label="Refresh analysis">🔄</button>
+            <button class="close-btn" aria-label="Close panel">×</button>
+        </div>
     `;
   header.querySelector(".close-btn").onclick = removePanel;
+
+  // Refresh button handler
+  const refreshBtn = header.querySelector("#pp-refresh-btn");
+  refreshBtn.onclick = () => handleRefreshClick();
 
   // Content Area
   const content = document.createElement("div");
   content.className = "content";
 
   if (data.claims && data.claims.length > 0) {
-    data.claims.forEach((claim) => {
+    const totalClaims = data.claims.length;
+
+    data.claims.forEach((claim, index) => {
       const card = document.createElement("div");
       card.className = "claim-card";
+      card.setAttribute("role", "article");
+      card.setAttribute(
+        "aria-label",
+        `Claim ${index + 1} of ${totalClaims}: ${claim.claim_text}`,
+      );
+
+      // Claim Header (Clickable for expand/collapse)
+      const claimHeader = document.createElement("div");
+      claimHeader.className = "claim-header";
+      claimHeader.setAttribute("role", "button");
+      claimHeader.setAttribute("tabindex", "0");
+      claimHeader.setAttribute("aria-expanded", "true");
 
       // 1. Claim Text
       const claimText = document.createElement("div");
       claimText.className = "claim-text";
       claimText.textContent = claim.claim_text;
-      card.appendChild(claimText);
+      claimHeader.appendChild(claimText);
+
+      // Toggle button
+      const toggleBtn = document.createElement("button");
+      toggleBtn.className = "toggle-btn";
+      toggleBtn.setAttribute("aria-label", "Toggle claim details");
+      toggleBtn.textContent = "▼";
+      claimHeader.appendChild(toggleBtn);
+
+      card.appendChild(claimHeader);
+
+      // Claim Details (Collapsible)
+      const claimDetails = document.createElement("div");
+      claimDetails.className = "claim-details";
 
       // 2. Overall Assessment
       const assessment = claim.truth_profile?.overall_assessment || "Unknown";
@@ -588,14 +812,14 @@ function showResults(data, isCached = false) {
       const badge = document.createElement("div");
       badge.className = `assessment-badge ${assessClass}`;
       badge.textContent = assessment;
-      card.appendChild(badge);
+      claimDetails.appendChild(badge);
 
       // 3. Perspectives
       if (claim.truth_profile?.perspectives) {
         const pTitle = document.createElement("div");
         pTitle.className = "section-title";
         pTitle.textContent = "Perspectives";
-        card.appendChild(pTitle);
+        claimDetails.appendChild(pTitle);
 
         const pGrid = document.createElement("div");
         pGrid.className = "perspectives-grid";
@@ -612,14 +836,47 @@ function showResults(data, isCached = false) {
               .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
               .join(" ");
 
-            row.innerHTML = `
-                <span class="perspective-name">${label}</span>
-                <span class="perspective-val">${val.assessment}</span>
-            `;
+            // Create row structure
+            const nameSpan = document.createElement("span");
+            nameSpan.className = "perspective-name";
+            nameSpan.textContent = label;
+
+            const valSpan = document.createElement("span");
+            valSpan.className = "perspective-val";
+            valSpan.textContent = val.assessment;
+
+            row.appendChild(nameSpan);
+
+            // Add confidence bar if available
+            if (typeof val.confidence === "number") {
+              const confidenceBar = document.createElement("div");
+              confidenceBar.className = "confidence-bar";
+              confidenceBar.setAttribute("role", "progressbar");
+              confidenceBar.setAttribute(
+                "aria-valuenow",
+                Math.round(val.confidence * 100),
+              );
+              confidenceBar.setAttribute("aria-valuemin", "0");
+              confidenceBar.setAttribute("aria-valuemax", "100");
+
+              const barFill = document.createElement("div");
+              barFill.className = "confidence-fill";
+              barFill.style.width = `${val.confidence * 100}%`;
+              confidenceBar.appendChild(barFill);
+
+              const percentText = document.createElement("span");
+              percentText.className = "confidence-text";
+              percentText.textContent = `${Math.round(val.confidence * 100)}%`;
+
+              row.appendChild(confidenceBar);
+              row.appendChild(percentText);
+            }
+
+            row.appendChild(valSpan);
             pGrid.appendChild(row);
           },
         );
-        card.appendChild(pGrid);
+        claimDetails.appendChild(pGrid);
       }
 
       // 4. Bias Indicators
@@ -635,7 +892,7 @@ function showResults(data, isCached = false) {
           const bTitle = document.createElement("div");
           bTitle.className = "section-title";
           bTitle.textContent = "Bias Indicators";
-          card.appendChild(bTitle);
+          claimDetails.appendChild(bTitle);
 
           const bTags = document.createElement("div");
           bTags.className = "bias-tags";
@@ -645,23 +902,52 @@ function showResults(data, isCached = false) {
             tag.textContent = ind;
             bTags.appendChild(tag);
           });
-          card.appendChild(bTags);
+          claimDetails.appendChild(bTags);
         }
 
         // Deception Score
         if (typeof bias.deception_score === "number") {
           const dDiv = document.createElement("div");
           dDiv.className = "deception-score";
-          dDiv.innerHTML = `
-                <span>Deception Risk:</span>
-                <div class="score-bar">
-                    <div class="score-fill" style="width: ${bias.deception_score * 10}%"></div>
-                </div>
-                <span>${bias.deception_score}/10</span>
-            `;
-          card.appendChild(dDiv);
+
+          const label = document.createElement("span");
+          label.textContent = "Deception Risk:";
+
+          const scoreBar = document.createElement("div");
+          scoreBar.className = "score-bar";
+
+          const scoreFill = document.createElement("div");
+          scoreFill.className = "score-fill";
+          scoreFill.style.width = `${bias.deception_score * 10}%`;
+          scoreBar.appendChild(scoreFill);
+
+          const scoreText = document.createElement("span");
+          scoreText.textContent = `${bias.deception_score}/10`;
+
+          dDiv.appendChild(label);
+          dDiv.appendChild(scoreBar);
+          dDiv.appendChild(scoreText);
+          claimDetails.appendChild(dDiv);
         }
       }
+
+      card.appendChild(claimDetails);
+
+      // Toggle functionality
+      const toggleClaim = () => {
+        const isExpanded = claimHeader.getAttribute("aria-expanded") === "true";
+        claimHeader.setAttribute("aria-expanded", !isExpanded);
+        claimDetails.classList.toggle("collapsed");
+        toggleBtn.textContent = isExpanded ? "▶" : "▼";
+      };
+
+      claimHeader.onclick = toggleClaim;
+      claimHeader.onkeydown = (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          toggleClaim();
+        }
+      };
 
       content.appendChild(card);
     });
@@ -887,12 +1173,12 @@ function showPanelError(errorMessage) {
         }
     `;
 
+  // Create container with static HTML (no user data)
   const container = document.createElement("div");
   container.innerHTML = `
         <div class="error-container">
             <div class="error-icon">⚠️</div>
             <div class="title" id="pp-panel-error-title">Analysis Failed</div>
-            <div class="message">${errorMessage}</div>
             <div class="actions">
                 <button class="btn retry-btn" id="pp-retry-btn">Retry</button>
                 <button class="btn close-btn" id="pp-close-btn">Close</button>
@@ -900,12 +1186,23 @@ function showPanelError(errorMessage) {
         </div>
     `;
 
+  // Safely insert error message using textContent (XSS-safe)
+  const messageEl = document.createElement("div");
+  messageEl.className = "message";
+  messageEl.textContent = errorMessage;
+
+  // Insert message before actions
+  const errorContainer = container.querySelector(".error-container");
+  const actionsEl = errorContainer.querySelector(".actions");
+  errorContainer.insertBefore(messageEl, actionsEl);
+
   shadow.appendChild(style);
   shadow.appendChild(container);
 
   document.body.appendChild(panel);
   analysisPanel = panel;
 
+  // Attach event handlers
   shadow.getElementById("pp-retry-btn").onclick = handleAnalysisClick;
   shadow.getElementById("pp-close-btn").onclick = removePanel;
 }

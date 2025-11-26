@@ -282,7 +282,7 @@
     - Create error state with retry/settings buttons
     - Add refreshing state (show previous results during refresh)
     - _Requirements: 4.2, 4.3, 4.4, 4.6_
-  - [ ] 7.3 Implement claims rendering
+  - [x] 7.3 Implement claims rendering
     - Create claim article elements with role="article"
     - Add aria-label with "Claim X of Y: {text}"
     - Implement expand/collapse functionality with aria-expanded
@@ -290,7 +290,7 @@
     - Render bias indicators (fallacies, manipulation, deception score)
     - Display confidence bars with percentage text
     - _Requirements: 4.2, 4.3_
-  - [ ] 7.4 Implement Refresh button functionality
+  - [x] 7.4 Implement Refresh button functionality
     - Create refresh button with aria-label
     - Implement bypass cache logic (force fresh analysis)
     - Update cache with new results on success
