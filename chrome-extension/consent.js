@@ -229,6 +229,8 @@ class ConsentManager {
           error,
         );
         alert("Failed to save your consent preference. Please try again.");
+        host.remove();
+        callback(false);
       }
     };
 
@@ -243,6 +245,8 @@ class ConsentManager {
           error,
         );
         alert("Failed to save your consent preference. Please try again.");
+        host.remove();
+        callback(false);
       }
     };
   }

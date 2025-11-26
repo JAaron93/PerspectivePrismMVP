@@ -371,6 +371,7 @@ async function handleAnalysisClick() {
 
     if (!hasConsent) {
       setButtonState("idle"); // Reset button state
+      removePanel(); // Ensure loading panel is closed
       consentManager.showConsentDialog(async (allowed) => {
         if (allowed) {
           // Retry analysis with consent
