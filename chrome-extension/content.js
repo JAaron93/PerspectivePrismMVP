@@ -184,6 +184,94 @@ function injectButton() {
   }
 }
 
+// --- Messaging Utilities ---
+
+/**
+ * Send a message to the background service worker with automatic retry.
+ *
+ * @param {Object} message - Message to send
+ * @param {Object} options - Retry options
+ * @param {number} options.timeout - Per-request timeout in ms (default: 5000)
+ * @param {number} options.maxAttempts - Max retry attempts (default: 4)
+ * @returns {Promise<any>} Response from background
+ */
+async function sendMessageWithRetry(message, options = {}) {
+  const { timeout = 5000, maxAttempts = 4 } = options;
+
+  const backoffDelays = [0, 500, 1000, 2000];
+  let lastError = null;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      // Wait for backoff delay before retry (skip for first attempt)
+      if (attempt > 0) {
+        const delay =
+          backoffDelays[Math.min(attempt, backoffDelays.length - 1)];
+        await sleep(delay);
+      }
+
+      // Send message with timeout
+      return await new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error(`Request timeout after ${timeout}ms`));
+        }, timeout);
+
+        try {
+          chrome.runtime.sendMessage(message, (response) => {
+            clearTimeout(timeoutId);
+
+            if (chrome.runtime.lastError) {
+              reject(new Error(chrome.runtime.lastError.message));
+              return;
+            }
+
+            if (response && response.error) {
+              // Treat fatal errors as non-retriable
+              const err = new Error(response.error.message || response.error);
+              if (
+                response.error.code === "AUTH_ERROR" ||
+                response.error.fatal
+              ) {
+                err.fatal = true;
+              }
+              reject(err);
+              return;
+            }
+
+            resolve(response);
+          });
+        } catch (error) {
+          clearTimeout(timeoutId);
+          reject(error);
+        }
+      });
+    } catch (error) {
+      lastError = error;
+
+      // Stop retrying on fatal errors
+      if (
+        error.fatal ||
+        error.message.includes("Extension context invalidated")
+      ) {
+        throw error;
+      }
+
+      // If last attempt, throw
+      if (attempt === maxAttempts - 1) {
+        console.error(
+          `[Perspective Prism] All ${maxAttempts} retry attempts failed.`,
+        );
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // --- Interaction Handling ---
 
 async function handleAnalysisClick() {

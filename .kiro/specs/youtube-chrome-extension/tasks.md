@@ -235,7 +235,7 @@
       - Respond with retry-after if recovery in progress
     - Surface user-facing error after retry exhaustion
     - _Requirements: 3.1, 3.2_
-  - [ ] 6.3 Implement message handlers in background service worker with startup recovery
+  - [x] 6.3 Implement message handlers in background service worker with startup recovery
     - **Service worker startup handler:**
       - On chrome.runtime.onStartup or first message:
         - Load persisted pending requests from chrome.storage.local
