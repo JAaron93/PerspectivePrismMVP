@@ -40,8 +40,21 @@ async function handleCacheCheck(message, sendResponse) {
     client = new PerspectivePrismClient(config.backendUrl);
   }
 
+  // Validate videoId
+  if (!message || !message.videoId || typeof message.videoId !== "string") {
+    sendResponse({ success: false, error: "Invalid or missing videoId" });
+    return;
+  }
+
+  const videoId = message.videoId.trim();
+  // YouTube ID regex: 11 characters, alphanumeric, -, _
+  if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+    sendResponse({ success: false, error: "Invalid videoId format" });
+    return;
+  }
+
   try {
-    const data = await client.checkCache(message.videoId);
+    const data = await client.checkCache(videoId);
     sendResponse({ success: true, data: data });
   } catch (error) {
     console.error("Cache check failed:", error);
@@ -57,6 +70,11 @@ async function handleAnalysisRequest(message, sendResponse) {
   }
 
   try {
+    if (!message.videoId) {
+      sendResponse({ success: false, error: "videoId is required" });
+      return;
+    }
+
     const result = await client.analyzeVideo(message.videoId);
     sendResponse(result);
   } catch (error) {

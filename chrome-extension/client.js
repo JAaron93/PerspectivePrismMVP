@@ -378,7 +378,7 @@ class PerspectivePrismClient {
       return "The analysis data received was invalid. Please try again.";
     }
     if (error instanceof TimeoutError) {
-      return " The analysis took too long. Please try again later.";
+      return "The analysis took too long. Please try again later.";
     }
     if (error instanceof HttpError) {
       if (error.status === 429) {
