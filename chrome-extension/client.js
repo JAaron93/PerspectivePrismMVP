@@ -744,6 +744,22 @@ class PerspectivePrismClient {
   }
 
   /**
+   * Get cache statistics (wrapper for getStats).
+   * @returns {Promise<Object>} Statistics object with totalEntries, totalSize, lastCleanup
+   */
+  async getCacheStats() {
+    return this.getStats();
+  }
+
+  /**
+   * Clear all cached data (wrapper for clear).
+   * Removes all cache entries from storage.
+   */
+  async clearCache() {
+    return this.clear();
+  }
+
+  /**
    * Migrates a cache entry to the current schema version.
    * @param {Object} entry - The cache entry to migrate.
    * @returns {Object|null} - The migrated entry, or null if migration failed.

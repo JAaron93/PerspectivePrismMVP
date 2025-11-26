@@ -171,7 +171,7 @@
       - If still not enough space, reject entry (oversized)
       - Log eviction events with video IDs and sizes
     - _Requirements: 5.1, 8.1, 8.2, 8.3, 8.4, 8.5_
-  - [x]\* 4.7 Add quota monitoring metrics
+  - [x]* 4.7 Add quota monitoring metrics
     - Track storage usage over time
     - Log eviction events
     - Monitor cache hit/miss rates
@@ -215,7 +215,7 @@
     - Style button to match YouTube UI
     - _Requirements: 2.2, 2.3_
 
-- [/] 6. Implement message passing between content script and background with MV3 recovery
+- [x] 6. Implement message passing between content script and background with MV3 recovery
   - [x] 6.1 Define message interfaces
     - Create TypeScript interfaces for AnalysisRequest, CacheCheckRequest
     - Create interfaces for AnalysisResponse, CacheCheckResponse
@@ -298,7 +298,7 @@
     - Handle refresh errors gracefully
     - _Requirements: 5.4_
 
-- [/] 8. Implement accessibility features for Analysis Panel
+- [x] 8. Implement accessibility features for Analysis Panel
   - [x] 8.1 Implement basic keyboard navigation
     - Add Escape key handler to close panel
     - Implement Tab key focus cycling within panel
@@ -328,14 +328,15 @@
     - Announce expansion state changes
     - _Requirements: 4.7_
 
-- [/] 9. Implement popup UI
+- [ ] 9. Implement popup UI
   - [x] 9.1 Create popup HTML structure
     - Add status display area
     - Add cache statistics display
     - Add "Open Settings" button
     - Add "Clear Cache" button
     - _Requirements: 1.2, 1.7_
-  - [ ] 9.2 Implement popup states
+
+  - [x] 9.2 Implement popup states
     - Create "Not on YouTube" state
     - Create "On YouTube - Idle" state
     - Create "Analysis in Progress" state with progress bar
@@ -343,7 +344,8 @@
     - Create "Error" state
     - Create "Not Configured" state
     - _Requirements: 1.7, 6.1_
-  - [ ] 9.3 Implement popup functionality
+
+  - [x] 9.3 Implement popup functionality
     - Load and display current status
     - Load and display cache statistics from CacheManager.getStats()
     - Implement "Clear Cache" button handler

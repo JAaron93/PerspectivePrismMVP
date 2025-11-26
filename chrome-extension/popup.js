@@ -6,6 +6,7 @@
  * - Displaying cache statistics
  * - Handling "Open Settings" and "Clear Cache" button clicks
  * - Updating UI based on current state
+ * - Managing different popup states (Not on YouTube, Idle, In Progress, Complete, Error, Not Configured)
  */
 
 // DOM elements
@@ -19,6 +20,30 @@ const clearCacheBtn = document.getElementById("clear-cache");
 const progressContainer = document.getElementById("progress-container");
 const progressFill = document.getElementById("progress-fill");
 const progressText = document.getElementById("progress-text");
+
+// Validate required elements exist
+const requiredElements = {
+  statusElement,
+  statusIcon,
+  statusMessage,
+  statusDetails,
+  cacheInfo,
+  openSettingsBtn,
+  clearCacheBtn,
+  progressContainer,
+  progressFill,
+  progressText,
+};
+
+for (const [name, element] of Object.entries(requiredElements)) {
+  if (!element) {
+    console.error(`Required element missing: ${name}`);
+  }
+}
+
+// State tracking
+let currentVideoId = null;
+let statusCheckInterval = null;
 
 /**
  * Update status display
@@ -100,6 +125,13 @@ async function loadCacheStats() {
 
 /**
  * Check current tab and determine status
+ * Implements all required popup states:
+ * - Not on YouTube
+ * - On YouTube - Idle
+ * - Analysis in Progress
+ * - Analysis Complete (Fresh vs Cached)
+ * - Error
+ * - Not Configured
  */
 async function checkCurrentStatus() {
   try {
@@ -110,7 +142,7 @@ async function checkCurrentStatus() {
     });
 
     if (!tab) {
-      updateStatus("info", "ℹ️", "No active tab found");
+      showNotOnYouTubeState();
       return;
     }
 
@@ -120,10 +152,11 @@ async function checkCurrentStatus() {
     const isYouTube =
       url.includes("youtube.com/watch") ||
       url.includes("youtu.be/") ||
-      url.includes("m.youtube.com/watch");
+      url.includes("m.youtube.com/watch") ||
+      url.includes("youtube.com/shorts");
 
     if (!isYouTube) {
-      updateStatus("info", "ℹ️", "Navigate to a YouTube video", "to analyze");
+      showNotOnYouTubeState();
       return;
     }
 
@@ -131,28 +164,194 @@ async function checkCurrentStatus() {
     const videoId = extractVideoIdFromUrl(url);
 
     if (!videoId) {
-      updateStatus("info", "ℹ️", "Navigate to a YouTube video", "to analyze");
+      showNotOnYouTubeState();
       return;
     }
+
+    currentVideoId = videoId;
 
     // Check if backend is configured
     const config = await chrome.storage.sync.get("config");
 
     if (!config.config || !config.config.backendUrl) {
-      updateStatus(
-        "warning",
-        "⚙️",
-        "Setup required",
-        "Configure backend URL to start analyzing videos.",
-      );
+      showNotConfiguredState();
       return;
     }
 
-    // Video page detected - show ready state
-    updateStatus("success", "✓", "Ready to analyze", `Video: ${videoId}`);
+    // Check for analysis state from background
+    const response = await chrome.runtime.sendMessage({
+      type: "GET_ANALYSIS_STATE",
+      videoId: videoId,
+    });
+
+    if (response && response.state) {
+      handleAnalysisState(response.state, videoId);
+    } else {
+      // Default to idle state if no analysis state found
+      showIdleState(videoId);
+    }
   } catch (error) {
     console.error("Failed to check status:", error);
-    updateStatus("error", "⚠️", "Error loading status", error.message);
+    showErrorState("Error loading status", error.message);
+  }
+}
+
+/**
+ * Handle different analysis states
+ * @param {Object} state - Analysis state from background
+ * @param {string} videoId - Current video ID
+ */
+function handleAnalysisState(state, videoId) {
+  switch (state.status) {
+    case "in_progress":
+      showInProgressState(state.progress || 0);
+      break;
+    case "complete":
+      showCompleteState(state.claimCount, state.isCached, state.analyzedAt);
+      break;
+    case "error":
+      showErrorState(state.errorMessage, state.errorDetails);
+      break;
+    case "idle":
+    default:
+      showIdleState(videoId);
+      break;
+  }
+}
+
+/**
+ * State: Not on YouTube
+ * Shown when user is not on a YouTube video page
+ */
+function showNotOnYouTubeState() {
+  updateStatus(
+    "info",
+    "ℹ️",
+    "Navigate to a YouTube video",
+    "to analyze",
+  );
+  hideProgress();
+  clearCacheBtn.disabled = false;
+}
+
+/**
+ * State: On YouTube - Idle
+ * Shown when on a YouTube video page but no analysis is running
+ * @param {string} videoId - Current video ID
+ */
+function showIdleState(videoId) {
+  updateStatus(
+    "success",
+    "✓",
+    "Ready to analyze",
+    `Video: ${videoId}`,
+  );
+  hideProgress();
+  clearCacheBtn.disabled = false;
+}
+
+/**
+ * State: Analysis in Progress
+ * Shown when analysis is currently running
+ * @param {number} progress - Progress percentage (0-100)
+ */
+function showInProgressState(progress) {
+  updateStatus(
+    "info",
+    "⏳",
+    "Analyzing video...",
+    "",
+  );
+  showProgress(progress, `${progress}%`);
+  clearCacheBtn.disabled = true;
+}
+
+/**
+ * State: Analysis Complete
+ * Shown when analysis has completed successfully
+ * @param {number} claimCount - Number of claims found
+ * @param {boolean} isCached - Whether results are from cache
+ * @param {number} analyzedAt - Timestamp of analysis
+ */
+function showCompleteState(claimCount, isCached, analyzedAt) {
+  const count = claimCount ?? 0;
+  const claimText = `Found ${count} claim${count !== 1 ? "s" : ""}`;
+  
+  if (isCached) {
+    const timeAgo = getTimeAgo(analyzedAt);
+    updateStatus(
+      "success",
+      "✓",
+      "Showing cached results",
+      `${claimText}\n(Analyzed ${timeAgo})`,
+    );
+  } else {
+    updateStatus(
+      "success",
+      "✓",
+      "Analysis complete",
+      `${claimText}\n(Just analyzed)`,
+    );
+  }
+  
+  hideProgress();
+  clearCacheBtn.disabled = false;
+}
+
+/**
+ * State: Error
+ * Shown when an error occurs during analysis
+ * @param {string} message - Error message
+ * @param {string} details - Error details
+ */
+function showErrorState(message, details = "") {
+  updateStatus(
+    "error",
+    "⚠️",
+    message || "Analysis failed",
+    details || "Check settings and try again.",
+  );
+  hideProgress();
+  clearCacheBtn.disabled = false;
+}
+
+/**
+ * State: Not Configured
+ * Shown when backend URL is not configured
+ */
+function showNotConfiguredState() {
+  updateStatus(
+    "warning",
+    "⚙️",
+    "Setup required",
+    "Configure backend URL to start analyzing videos.",
+  );
+  hideProgress();
+  clearCacheBtn.disabled = false;
+}
+
+/**
+ * Calculate time ago from timestamp
+ * @param {number} timestamp - Unix timestamp in milliseconds
+ * @returns {string} - Human-readable time ago string
+ */
+function getTimeAgo(timestamp) {
+  const now = Date.now();
+  const diff = now - timestamp;
+  
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  
+  if (days > 0) {
+    return `${days} day${days !== 1 ? "s" : ""} ago`;
+  } else if (hours > 0) {
+    return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+  } else if (minutes > 0) {
+    return `${minutes} minute${minutes !== 1 ? "s" : ""} ago`;
+  } else {
+    return "just now";
   }
 }
 
@@ -243,6 +442,32 @@ async function handleClearCache() {
 }
 
 /**
+ * Start periodic status checking
+ * Updates popup state every 2 seconds while open
+ */
+function startStatusPolling() {
+  // Clear any existing interval
+  if (statusCheckInterval) {
+    clearInterval(statusCheckInterval);
+  }
+  
+  // Check status every 2 seconds
+  statusCheckInterval = setInterval(async () => {
+    await checkCurrentStatus();
+  }, 2000);
+}
+
+/**
+ * Stop periodic status checking
+ */
+function stopStatusPolling() {
+  if (statusCheckInterval) {
+    clearInterval(statusCheckInterval);
+    statusCheckInterval = null;
+  }
+}
+
+/**
  * Initialize popup
  */
 async function init() {
@@ -252,7 +477,28 @@ async function init() {
   // Setup event listeners
   openSettingsBtn.addEventListener("click", handleOpenSettings);
   clearCacheBtn.addEventListener("click", handleClearCache);
+  
+  // Start polling for status updates
+  startStatusPolling();
+  
+  // Listen for messages from background (for real-time updates)
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === "ANALYSIS_STATE_CHANGED") {
+      // Update status immediately when state changes
+      checkCurrentStatus();
+    } else if (message.type === "CACHE_UPDATED") {
+      // Reload cache stats when cache is updated
+      loadCacheStats();
+    }
+  });
 }
+
+/**
+ * Cleanup when popup closes
+ */
+window.addEventListener("beforeunload", () => {
+  stopStatusPolling();
+});
 
 // Run initialization when popup opens
 document.addEventListener("DOMContentLoaded", init);
