@@ -13,16 +13,50 @@ const PANEL_ID = 'pp-analysis-panel';
 
 // --- Video ID Extraction ---
 
+function isValidVideoId(id) {
+    // YouTube video IDs are exactly 11 characters
+    // Valid characters: A-Z, a-z, 0-9, underscore, hyphen
+    return /^[a-zA-Z0-9_-]{11}$/.test(id);
+}
+
 function extractVideoId() {
+    // Strategy 1: Standard watch URL parameter (?v=VIDEO_ID)
     const urlParams = new URLSearchParams(window.location.search);
     const watchParam = urlParams.get('v');
-    if (watchParam && /^[a-zA-Z0-9_-]{11}$/.test(watchParam)) {
+    if (watchParam && isValidVideoId(watchParam)) {
+        console.debug('[Perspective Prism] Extracted Video ID via watch param:', watchParam);
         return watchParam;
     }
 
     const pathname = window.location.pathname;
-    const shortsMatch = pathname.match(/\/shorts\/([A-Za-z0-9_-]{11})/);
-    if (shortsMatch) return shortsMatch[1];
+
+    // Strategy 2: Shorts format: /shorts/VIDEO_ID
+    const shortsMatch = pathname.match(/\/shorts\/([A-Za-z0-9_-]+)/);
+    if (shortsMatch && isValidVideoId(shortsMatch[1])) {
+        console.debug('[Perspective Prism] Extracted Video ID via shorts path:', shortsMatch[1]);
+        return shortsMatch[1];
+    }
+
+    // Strategy 3: Embed format: /embed/VIDEO_ID
+    const embedMatch = pathname.match(/\/embed\/([A-Za-z0-9_-]+)/);
+    if (embedMatch && isValidVideoId(embedMatch[1])) {
+        console.debug('[Perspective Prism] Extracted Video ID via embed path:', embedMatch[1]);
+        return embedMatch[1];
+    }
+
+    // Strategy 4: Legacy format: /v/VIDEO_ID
+    const legacyMatch = pathname.match(/\/v\/([A-Za-z0-9_-]+)/);
+    if (legacyMatch && isValidVideoId(legacyMatch[1])) {
+        console.debug('[Perspective Prism] Extracted Video ID via legacy path:', legacyMatch[1]);
+        return legacyMatch[1];
+    }
+
+    // Strategy 5: Hash fragment (e.g. #v=VIDEO_ID)
+    const hashMatch = window.location.hash.match(/[?&]v=([A-Za-z0-9_-]+)/);
+    if (hashMatch && isValidVideoId(hashMatch[1])) {
+        console.debug('[Perspective Prism] Extracted Video ID via hash fragment:', hashMatch[1]);
+        return hashMatch[1];
+    }
 
     return null;
 }
@@ -33,6 +67,7 @@ function createAnalysisButton() {
     const btn = document.createElement('button');
     btn.id = BUTTON_ID;
     btn.className = 'pp-ext-button';
+    btn.setAttribute('data-pp-analysis-button', 'true'); // Duplication prevention
     btn.innerHTML = `
         <span class="pp-icon">🔍</span>
         <span>Analyze Claims</span>
@@ -42,29 +77,36 @@ function createAnalysisButton() {
 }
 
 function injectButton() {
-    if (document.getElementById(BUTTON_ID)) return; // Already injected
+    // Check for existing button using both ID and data attribute
+    if (document.getElementById(BUTTON_ID) || document.querySelector('[data-pp-analysis-button="true"]')) {
+        return;
+    }
 
     // Selectors from design doc
     const selectors = [
-        '#top-level-buttons-computed', // Primary
-        '#menu-container',             // Fallback 1
-        '#info-contents'               // Fallback 2
+        '#top-level-buttons-computed', // Primary: Action buttons bar
+        '#menu-container',             // Fallback 1: Alternative menu container
+        '#info-contents'               // Fallback 2: Metadata area
     ];
 
     let container = null;
+    let usedSelector = null;
+
     for (const selector of selectors) {
         container = document.querySelector(selector);
-        if (container) break;
+        if (container) {
+            usedSelector = selector;
+            break;
+        }
     }
 
     if (container) {
         analysisButton = createAnalysisButton();
-        // Insert as first child or append depending on layout? 
-        // YouTube buttons are usually right-aligned or flex. Appending is usually safe.
-        container.appendChild(analysisButton);
-        console.log('Perspective Prism button injected');
+        // Insert as first child to ensure visibility
+        container.insertBefore(analysisButton, container.firstChild);
+        console.log(`[Perspective Prism] Button injected using selector: ${usedSelector}`);
     } else {
-        console.log('Perspective Prism: No suitable container found for button');
+        console.warn('[Perspective Prism] No suitable container found for button injection. Retrying later.');
     }
 }
 
@@ -225,11 +267,11 @@ function showResults(data) {
             const claimTextDiv = document.createElement('div');
             claimTextDiv.className = 'claim-text';
             claimTextDiv.textContent = claim.claim_text;
-            
+
             const assessmentDiv = document.createElement('div');
             assessmentDiv.className = `assessment ${assessClass}`;
             assessmentDiv.textContent = assessment;
-            
+
             const perspectivesDiv = document.createElement('div');
             perspectivesDiv.className = 'perspectives';
             Object.entries(claim.truth_profile?.perspectives || {}).forEach(([key, val]) => {
@@ -240,11 +282,11 @@ function showResults(data) {
                 perDiv.appendChild(document.createTextNode(' ' + val.assessment));
                 perspectivesDiv.appendChild(perDiv);
             });
-            
+
             card.appendChild(claimTextDiv);
             card.appendChild(assessmentDiv);
             card.appendChild(perspectivesDiv);
-             content.appendChild(card);
+            content.appendChild(card);
 
         });
     } else {

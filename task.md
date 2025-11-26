@@ -13,3 +13,9 @@
 - [x] Add progress tracking <!-- id: 12 -->
     - [x] Emit progress events <!-- id: 13 -->
     - [x] Handle cancellation <!-- id: 14 -->
+- [x] Implement Content Script Video ID Extraction <!-- id: 15 -->
+    - [x] Support multiple URL formats (watch, shorts, embed, legacy) <!-- id: 16 -->
+    - [x] Add validation and logging <!-- id: 17 -->
+- [x] Implement DOM Injection with Fallback Selectors <!-- id: 18 -->
+    - [x] Implement fallback selectors (#top-level-buttons-computed, #menu-container, #info-contents) <!-- id: 19 -->
+    - [x] Add duplication prevention (data attribute) <!-- id: 20 -->

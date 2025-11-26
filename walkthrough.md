@@ -1,38 +1,25 @@
-# Walkthrough - Cache Management Implementation
+# Walkthrough - DOM Injection Enhancement
 
-I have implemented robust cache management for the YouTube Chrome Extension to improve performance and reduce API calls.
+I have enhanced the `content.js` script to implement robust DOM injection for the analysis button.
 
 ## Changes
 
-### 1. Cache Logic in `client.js`
-I updated `PerspectivePrismClient` to include:
-- **Cache Key Strategy**: Uses `cache_{videoId}` as the key.
-- **Versioning**: Checks `CACHE_VERSION` ('v1') to invalidate old cache schemas.
-- **Expiration**: Enforces a 24-hour TTL (`CACHE_TTL_MS`).
-- **LRU Eviction**: Maintains a soft limit of 50 items (`MAX_CACHE_ITEMS`), evicting the least recently accessed items when the limit is reached.
+### [content.js](file:///Users/pretermodernist/PerspectivePrismMVP/chrome-extension/content.js)
 
-### 2. Startup Cleanup in `background.js`
-I added a listener to `chrome.runtime.onStartup` to automatically clean up expired or invalid cache entries when the browser starts, ensuring the storage doesn't grow indefinitely with stale data.
-
-### 3. Verification Tests
-I created `test-cache.html` to verify the logic in isolation using a mock `chrome.storage.local`.
+-   **Duplication Prevention**: Added `data-pp-analysis-button="true"` attribute to the button and updated the injection check to query for this attribute. This prevents duplicate buttons if the ID is somehow removed or if multiple instances of the script run.
+-   **Fallback Selectors**: Implemented a prioritized list of selectors to find a suitable container for the button:
+    1.  `#top-level-buttons-computed` (Primary - Action bar)
+    2.  `#menu-container` (Fallback 1)
+    3.  `#info-contents` (Fallback 2)
+-   **Injection Logic**: The script now iterates through these selectors and injects the button into the first valid container found.
+-   **Logging**: Added detailed logging to indicate which selector was used or if injection failed (graceful degradation).
 
 ## Verification Results
 
-I ran the verification tests in the browser, and all tests passed:
-
-```
-PASS: Cache miss returns null
-PASS: Cache hit returns data
-PASS: Expired item returns null
-PASS: Expired item removed from storage
-PASS: Version mismatch returns null
-PASS: Version mismatch removed from storage
-PASS: Cache size is 50 (expected 50)
-PASS: Oldest item (vid_000) evicted
-PASS: Newest item (vid_050) retained
-```
-
-## Next Steps
-- The cache system is now ready for integration with the UI components (Analysis Button/Panel).
-- Future work can include adding a "Clear Cache" button in the options page if needed.
+### Manual Verification Steps
+To verify this manually:
+1.  Load the extension in Chrome.
+2.  Navigate to a YouTube video.
+3.  **Verify Injection**: Check that the "Analyze Claims" button appears near the other action buttons (like Share, Download).
+4.  **Verify Duplication**: Open the console and run `injectButton()`. Verify that no second button appears.
+5.  **Verify Fallback**: (Advanced) Use DevTools to delete the `#top-level-buttons-computed` element and reload/re-run injection to see if it appears in the fallback location.
