@@ -199,7 +199,7 @@
     - Implement graceful degradation for injection failures
     - _Requirements: 2.1, 2.2_
   
-  - [ ]* 5.3 Add selector monitoring and metrics
+  - [x] 5.3 Add selector monitoring and metrics
     - Track selector success/failure rates
     - Log selector used and YouTube layout variant
     - Store metrics for future selector updates

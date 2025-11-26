@@ -19,6 +19,10 @@
 - [x] Implement DOM Injection with Fallback Selectors <!-- id: 18 -->
     - [x] Implement fallback selectors (#top-level-buttons-computed, #menu-container, #info-contents) <!-- id: 19 -->
     - [x] Add duplication prevention (data attribute) <!-- id: 20 -->
+- [x] Add Selector Monitoring and Metrics <!-- id: 29 -->
+    - [x] Track selector success/failure rates <!-- id: 30 -->
+    - [x] Log selector used and YouTube layout variant <!-- id: 31 -->
+    - [x] Store metrics for future selector updates <!-- id: 32 -->
 - [x] Configure MutationObserver for Dynamic Content <!-- id: 21 -->
     - [x] Implement specific container observation with fallback to body <!-- id: 22 -->
     - [x] Add 500ms debounce logic <!-- id: 23 -->

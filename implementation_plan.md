@@ -1,11 +1,11 @@
-# Implementation Plan - Analysis Button Component
+# Implementation Plan - Selector Monitoring and Metrics
 
-This plan addresses the requirement to implement a fully functional and accessible Analysis Button component that integrates seamlessly with YouTube's UI.
+This plan addresses the requirement to track and store metrics regarding the success and failure of different DOM selectors used for button injection. This data is crucial for maintaining the extension's compatibility with YouTube's evolving layout.
 
 ## User Review Required
 
 > [!NOTE]
-> No breaking changes. This enhances the existing button with better accessibility and styling.
+> This feature adds telemetry-like tracking to `chrome.storage.local`. It does not send data externally but stores it locally for debugging/development purposes.
 
 ## Proposed Changes
 
@@ -13,29 +13,41 @@ This plan addresses the requirement to implement a fully functional and accessib
 
 #### [MODIFY] [content.js](file:///Users/pretermodernist/PerspectivePrismMVP/chrome-extension/content.js)
 
--   **Update `createAnalysisButton`**:
-    -   Add `aria-label="Analyze video claims"`.
-    -   Add `role="button"`.
-    -   Add `tabindex="0"`.
--   **Update `setButtonState`**:
-    -   **Idle**: `aria-label="Analyze video claims"`, enable button.
-    -   **Loading**: `aria-label="Analysis in progress"`, `aria-busy="true"`, disable button.
-    -   **Success**: `aria-label="Analysis complete"`, enable button.
-    -   **Error**: `aria-label="Analysis failed, click to retry"`, enable button.
-
-#### [MODIFY] [content.css](file:///Users/pretermodernist/PerspectivePrismMVP/chrome-extension/content.css)
-
--   **Refine Styling**:
-    -   Ensure font weights and sizes match YouTube's current design (Roboto, 14px, 500 weight).
-    -   Verify dark mode colors match YouTube's dark theme (`#272727` bg, `#f1f1f1` text).
-    -   Add specific styles for states (e.g., error state red tint, success state green tint).
+-   **Add `SelectorMetrics` Object**:
+    -   Create a state object to hold metrics:
+        ```javascript
+        const metrics = {
+            attempts: 0,
+            successes: 0,
+            failures: 0,
+            bySelector: {} // Map of selector -> count
+        };
+        ```
+-   **Implement `loadMetrics` / `saveMetrics`**:
+    -   Load metrics from `chrome.storage.local` on init.
+    -   Save metrics to `chrome.storage.local` whenever they change (or debounced).
+-   **Update `injectButton`**:
+    -   Increment `metrics.attempts`.
+    -   On success:
+        -   Increment `metrics.successes`.
+        -   Increment count for the specific `usedSelector`.
+        -   Call `saveMetrics`.
+    -   On failure:
+        -   Increment `metrics.failures`.
+        -   Call `saveMetrics`.
+-   **Add `printMetrics` Helper**:
+    -   Add a function (exposed or just internal) to log current metrics to console for easy debugging.
 
 ## Verification Plan
 
 ### Manual Verification
--   **Visual Inspection**:
-    -   Check button appearance in Light and Dark modes.
-    -   Verify states: Click to trigger loading, verify success/error appearance.
--   **Accessibility**:
-    -   Inspect element to verify ARIA attributes update correctly.
-    -   Test keyboard navigation (Tab to focus, Enter/Space to activate).
+-   **Injection Tracking**:
+    -   Reload the extension/page.
+    -   Verify `metrics.attempts` increases.
+    -   Verify `metrics.bySelector['#top-level-buttons-computed']` (or whichever is used) increases.
+-   **Persistence**:
+    -   Reload the page.
+    -   Check `chrome.storage.local.get` to see if counts persist and accumulate.
+-   **Failure Tracking**:
+    -   Temporarily break the selectors in code.
+    -   Verify `metrics.failures` increases.

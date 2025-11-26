@@ -82,7 +82,107 @@ function createAnalysisButton() {
     return btn;
 }
 
-// ... (injectButton remains unchanged)
+// Metrics State
+const metrics = {
+    attempts: 0,
+    successes: 0,
+    failures: 0,
+    bySelector: {} // Map of selector -> count
+};
+
+function loadMetrics() {
+    chrome.storage.local.get(['selectorMetrics'], (result) => {
+        if (result.selectorMetrics) {
+            Object.assign(metrics, result.selectorMetrics);
+            console.debug('[Perspective Prism] Metrics loaded:', metrics);
+        }
+    });
+}
+
+function saveMetrics() {
+    chrome.storage.local.set({ selectorMetrics: metrics }, () => {
+        // console.debug('[Perspective Prism] Metrics saved');
+    });
+}
+
+function printMetrics() {
+    console.table(metrics);
+    console.table(metrics.bySelector);
+}
+
+// Expose for debugging
+window.ppPrintMetrics = printMetrics;
+
+function injectButton() {
+    // Check for existing button using both ID and data attribute
+    if (document.getElementById(BUTTON_ID) || document.querySelector('[data-pp-analysis-button="true"]')) {
+        return;
+    }
+
+    metrics.attempts++;
+
+    // Selectors from design doc
+    const selectors = [
+        '#top-level-buttons-computed', // Primary: Action buttons bar
+        '#menu-container',             // Fallback 1: Alternative menu container
+        '#info-contents'               // Fallback 2: Metadata area
+    ];
+
+    let container = null;
+    let usedSelector = null;
+
+    for (const selector of selectors) {
+        container = document.querySelector(selector);
+        if (container) {
+            usedSelector = selector;
+            break;
+        }
+    }
+
+    if (container) {
+        analysisButton = createAnalysisButton();
+        // Insert as first child to ensure visibility
+        container.insertBefore(analysisButton, container.firstChild);
+        console.log(`[Perspective Prism] Button injected using selector: ${usedSelector}`);
+
+        metrics.successes++;
+        metrics.bySelector[usedSelector] = (metrics.bySelector[usedSelector] || 0) + 1;
+        saveMetrics();
+    } else {
+        console.warn('[Perspective Prism] No suitable container found for button injection. Retrying later.');
+        metrics.failures++;
+        saveMetrics();
+    }
+}
+
+// --- Interaction Handling ---
+
+function handleAnalysisClick() {
+    if (!currentVideoId) return;
+
+    setButtonState('loading');
+
+    // Check cache first (handled by client.js in background, but we send message)
+    chrome.runtime.sendMessage({
+        type: 'ANALYZE_VIDEO',
+        videoId: currentVideoId
+    }, (response) => {
+        if (chrome.runtime.lastError) {
+            console.error('Message failed:', chrome.runtime.lastError);
+            setButtonState('error');
+            showError('Extension connection failed. Please reload.');
+            return;
+        }
+
+        if (response && response.success) {
+            setButtonState('success');
+            showResults(response.data);
+        } else {
+            setButtonState('error');
+            showError(response?.error || 'Analysis failed');
+        }
+    });
+}
 
 function setButtonState(state) {
     if (!analysisButton) return;
@@ -335,6 +435,8 @@ function handleNavigation() {
 }
 
 function init() {
+    loadMetrics();
+
     // Initial check
     const newVideoId = extractVideoId();
     if (newVideoId) {
