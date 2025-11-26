@@ -94,6 +94,9 @@ async function handleAnalysisRequest(message, sendResponse) {
     client = new PerspectivePrismClient(config.backendUrl);
   }
 
+  // Declare videoId outside try block so catch block can access it
+  let videoId = undefined;
+
   try {
     const validation = validateVideoId(message);
     if (!validation.valid) {
@@ -101,7 +104,7 @@ async function handleAnalysisRequest(message, sendResponse) {
       return;
     }
 
-    const videoId = validation.videoId;
+    videoId = validation.videoId;
 
     // Set state to in_progress
     setAnalysisState(videoId, {
@@ -133,7 +136,7 @@ async function handleAnalysisRequest(message, sendResponse) {
   } catch (error) {
     console.error("Analysis request failed:", error);
 
-    // Set state to error
+    // Set state to error (videoId may be undefined if validation failed)
     if (videoId) {
       setAnalysisState(videoId, {
         status: "error",

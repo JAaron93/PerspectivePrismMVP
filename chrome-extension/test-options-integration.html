@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Options Integration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .test-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .test-panel {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        h2 {
+            margin-top: 0;
+        }
+        .test-input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .test-input.error {
+            border-color: #f44336;
+        }
+        .error-message {
+            color: #f44336;
+            font-size: 13px;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: #ffebee;
+            border-radius: 4px;
+            display: none;
+        }
+        .error-message.visible {
+            display: block;
+        }
+        button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        button.primary {
+            background: #2196f3;
+            color: white;
+            border-color: #2196f3;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        .status.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+    </style>
+</head>
+<body>
+    <h1>Options Page Integration Test</h1>
+    <p>This test simulates the options page validation behavior</p>
+
+    <div class="test-container">
+        <div class="test-panel">
+            <h2>Test Form</h2>
+            <label for="test-url">Backend URL:</label>
+            <input type="text" id="test-url" class="test-input" placeholder="Enter backend URL">
+            <div id="url-error" class="error-message"></div>
+            
+            <button id="test-btn" disabled>Test Connection</button>
+            <button id="save-btn" class="primary" disabled>Save Settings</button>
+
+            <div id="status" class="status info" style="display: none;"></div>
+        </div>
+
+        <div class="test-panel">
+            <h2>Test Scenarios</h2>
+            <button onclick="testScenario('https://api.example.com')">Valid HTTPS URL</button><br><br>
+            <button onclick="testScenario('http://localhost:8000')">Valid localhost HTTP</button><br><br>
+            <button onclick="testScenario('http://example.com')">Invalid: HTTP non-localhost</button><br><br>
+            <button onclick="testScenario('ftp://example.com')">Invalid: FTP protocol</button><br><br>
+            <button onclick="testScenario('not-a-url')">Invalid: Not a URL</button><br><br>
+            <button onclick="testScenario('')">Invalid: Empty</button><br><br>
+            <button onclick="testScenario('https://api.example.com:8443/path')">Valid: HTTPS with port and path</button>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        const urlInput = document.getElementById('test-url');
+        const urlError = document.getElementById('url-error');
+        const testBtn = document.getElementById('test-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const status = document.getElementById('status');
+
+        let isValid = false;
+
+        // Real-time validation on input
+        urlInput.addEventListener('input', validateUrl);
+        urlInput.addEventListener('blur', validateUrl);
+
+        function validateUrl() {
+            const url = urlInput.value.trim();
+
+            // Clear previous state
+            urlError.textContent = '';
+            urlError.classList.remove('visible');
+            urlInput.classList.remove('error');
+            status.style.display = 'none';
+
+            // Empty check
+            if (!url) {
+                showError('Backend URL is required');
+                isValid = false;
+                updateButtons();
+                return;
+            }
+
+            // Validate URL
+            if (!ConfigValidator.isValidUrl(url, false)) {
+                const errorMessage = ConfigValidator.getUrlError(url);
+                showError(errorMessage);
+                isValid = false;
+                updateButtons();
+                return;
+            }
+
+            // Valid
+            isValid = true;
+            urlInput.classList.remove('error');
+            updateButtons();
+            showStatus('✓ URL is valid', 'success');
+        }
+
+        function showError(message) {
+            urlError.textContent = message;
+            urlError.classList.add('visible');
+            urlInput.classList.add('error');
+        }
+
+        function updateButtons() {
+            testBtn.disabled = !isValid;
+            saveBtn.disabled = !isValid;
+        }
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+
+        function testScenario(url) {
+            urlInput.value = url;
+            urlInput.dispatchEvent(new Event('input'));
+            urlInput.focus();
+        }
+
+        // Test button click
+        testBtn.addEventListener('click', () => {
+            showStatus('Testing connection...', 'info');
+            setTimeout(() => {
+                showStatus('✓ Connection test would be performed here', 'success');
+            }, 1000);
+        });
+
+        // Save button click
+        saveBtn.addEventListener('click', () => {
+            showStatus('Saving settings...', 'info');
+            setTimeout(() => {
+                showStatus('✓ Settings would be saved here', 'success');
+            }, 500);
+        });
+    </script>
+</body>
+</html>

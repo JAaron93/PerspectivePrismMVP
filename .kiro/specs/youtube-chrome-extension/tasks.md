@@ -328,7 +328,7 @@
     - Announce expansion state changes
     - _Requirements: 4.7_
 
-- [ ] 9. Implement popup UI
+- [x] 9. Implement popup UI
   - [x] 9.1 Create popup HTML structure
     - Add status display area
     - Add cache statistics display
@@ -354,14 +354,14 @@
     - _Requirements: 1.2_
 
 - [ ] 10. Implement options page
-  - [ ] 10.1 Create options page HTML structure
+  - [x] 10.1 Create options page HTML structure
     - Add backend URL input field with label
     - Add "Test Connection" button
     - Add cache settings (enable checkbox, duration input)
     - Add "Save Settings" button
     - Add privacy controls section
     - _Requirements: 1.2, 1.3_
-  - [ ] 10.2 Implement backend URL validation
+  - [x] 10.2 Implement backend URL validation
     - Add real-time validation on input change
     - Show validation errors inline
     - Enforce HTTPS for non-localhost addresses
