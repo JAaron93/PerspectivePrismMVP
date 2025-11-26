@@ -6,6 +6,17 @@ console.log("Perspective Prism background service worker loaded");
 let client;
 const configManager = new ConfigManager();
 
+function validateVideoId(message) {
+  if (!message || !message.videoId || typeof message.videoId !== "string") {
+    return { valid: false, error: "Invalid or missing videoId" };
+  }
+  const videoId = message.videoId.trim();
+  if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+    return { valid: false, error: "Invalid videoId format" };
+  }
+  return { valid: true, videoId };
+}
+
 // Initialize client with config
 configManager
   .load()
@@ -40,18 +51,13 @@ async function handleCacheCheck(message, sendResponse) {
     client = new PerspectivePrismClient(config.backendUrl);
   }
 
-  // Validate videoId
-  if (!message || !message.videoId || typeof message.videoId !== "string") {
-    sendResponse({ success: false, error: "Invalid or missing videoId" });
+  const validation = validateVideoId(message);
+  if (!validation.valid) {
+    sendResponse({ success: false, error: validation.error });
     return;
   }
 
-  const videoId = message.videoId.trim();
-  // YouTube ID regex: 11 characters, alphanumeric, -, _
-  if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
-    sendResponse({ success: false, error: "Invalid videoId format" });
-    return;
-  }
+  const videoId = validation.videoId;
 
   try {
     const data = await client.checkCache(videoId);
@@ -70,12 +76,13 @@ async function handleAnalysisRequest(message, sendResponse) {
   }
 
   try {
-    if (!message.videoId) {
-      sendResponse({ success: false, error: "videoId is required" });
+    const validation = validateVideoId(message);
+    if (!validation.valid) {
+      sendResponse({ success: false, error: validation.error });
       return;
     }
 
-    const result = await client.analyzeVideo(message.videoId);
+    const result = await client.analyzeVideo(validation.videoId);
     sendResponse(result);
   } catch (error) {
     console.error("Analysis request failed:", error);

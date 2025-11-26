@@ -6,6 +6,8 @@ console.log("Perspective Prism content script loaded");
 let currentVideoId = null;
 let analysisPanel = null;
 let analysisButton = null;
+let cancelRequest = false;
+let loadingTimer = null;
 
 // Constants
 const BUTTON_ID = "pp-analysis-button";
@@ -278,6 +280,8 @@ async function handleAnalysisClick() {
   if (!currentVideoId) return;
 
   setButtonState("loading");
+  showPanelLoading();
+  cancelRequest = false;
 
   try {
     const response = await sendMessageWithRetry(
@@ -291,20 +295,36 @@ async function handleAnalysisClick() {
       },
     );
 
+    // Check if request was cancelled
+    if (cancelRequest) {
+      console.log("[Perspective Prism] Request was cancelled");
+      removePanel();
+      setButtonState("idle");
+      return;
+    }
+
     if (response && response.success) {
       setButtonState("success");
-      showResults(response.data);
+      const isCached = response.fromCache || false;
+      showResults(response.data, isCached);
     } else {
       setButtonState("error");
-      showError(response?.error || "Analysis failed");
+      showPanelError(response?.error || "Analysis failed");
     }
   } catch (error) {
+    if (cancelRequest) {
+      console.log("[Perspective Prism] Request was cancelled");
+      removePanel();
+      setButtonState("idle");
+      return;
+    }
+
     console.error(
       "[Perspective Prism] Analysis request failed after retries:",
       error,
     );
     setButtonState("error");
-    showError(error.message || "Connection failed. Please reload the page.");
+    showPanelError(error.message || "Connection failed. Please try again.");
   }
 }
 
@@ -358,11 +378,14 @@ function setButtonState(state) {
 
 // --- Results Display ---
 
-function showResults(data) {
+function showResults(data, isCached = false) {
   removePanel(); // Remove existing
 
   const panel = document.createElement("div");
   panel.id = PANEL_ID;
+  panel.setAttribute("role", "dialog");
+  panel.setAttribute("aria-modal", "true");
+  panel.setAttribute("aria-labelledby", "pp-panel-title");
 
   // Shadow DOM for style isolation
   const shadow = panel.attachShadow({ mode: "open" });
@@ -371,6 +394,7 @@ function showResults(data) {
   const style = document.createElement("style");
   style.textContent = `
         :host {
+            all: initial; /* Reset inherited styles */
             position: fixed;
             top: 60px;
             right: 20px;
@@ -380,9 +404,15 @@ function showResults(data) {
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             border-radius: 12px;
             z-index: 9999;
-            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
             font-family: Roboto, Arial, sans-serif;
             color: #0f0f0f;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
         .header {
             padding: 16px;
@@ -391,51 +421,142 @@ function showResults(data) {
             justify-content: space-between;
             align-items: center;
             background: #f9f9f9;
+            border-radius: 12px 12px 0 0;
+            flex-shrink: 0;
         }
-        .title { font-weight: 600; font-size: 16px; }
+        .title { 
+            font-weight: 600; 
+            font-size: 16px; 
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
         .close-btn {
             cursor: pointer;
             border: none;
             background: none;
-            font-size: 20px;
+            font-size: 24px;
             color: #606060;
+            padding: 4px;
+            line-height: 1;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
         }
-        .content { padding: 16px; }
+        .close-btn:hover { background: #e5e5e5; }
+        .content { 
+            padding: 16px; 
+            overflow-y: auto;
+            flex-grow: 1;
+        }
         .claim-card {
             border: 1px solid #e5e5e5;
             border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
             background: #fff;
+            transition: box-shadow 0.2s;
         }
-        .claim-text { font-weight: 500; margin-bottom: 8px; }
-        .assessment { 
-            display: inline-block;
+        .claim-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .claim-text { 
+            font-weight: 500; 
+            font-size: 14px;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+        .assessment-badge { 
+            display: inline-flex;
+            align-items: center;
             padding: 4px 8px;
-            border-radius: 4px;
+            border-radius: 16px;
             font-size: 12px;
             font-weight: 500;
+            margin-bottom: 12px;
         }
-        .assessment.high { background: #e6f4ea; color: #137333; }
-        .assessment.medium { background: #fce8e6; color: #c5221f; }
-        .assessment.low { background: #fef7e0; color: #b06000; }
+        .assessment-badge.high { background: #e6f4ea; color: #137333; }
+        .assessment-badge.medium { background: #fce8e6; color: #c5221f; }
+        .assessment-badge.low { background: #fef7e0; color: #b06000; }
         
-        .perspectives { margin-top: 8px; font-size: 13px; color: #606060; }
+        .section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #606060;
+            text-transform: uppercase;
+            margin: 12px 0 8px 0;
+            letter-spacing: 0.5px;
+        }
+        .perspectives-grid {
+            display: grid;
+            gap: 8px;
+        }
+        .perspective-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            padding: 4px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .perspective-row:last-child { border-bottom: none; }
+        .perspective-name { color: #606060; }
+        .perspective-val { font-weight: 500; }
+        
+        .bias-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .bias-tag {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: #f0f0f0;
+            color: #606060;
+        }
+        .deception-score {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+        .score-bar {
+            flex-grow: 1;
+            height: 6px;
+            background: #e5e5e5;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .score-fill {
+            height: 100%;
+            background: #c5221f;
+            border-radius: 3px;
+        }
     `;
 
-  // Content
+  // Content Container
   const container = document.createElement("div");
 
   // Header
   const header = document.createElement("div");
   header.className = "header";
+
+  const cachedBadge = isCached
+    ? '<span style="font-size: 11px; background: #fef7e0; color: #b06000; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">Cached</span>'
+    : '<span style="font-size: 11px; background: #e6f4ea; color: #137333; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">Fresh</span>';
+
   header.innerHTML = `
-        <span class="title">Analysis Results</span>
-        <button class="close-btn">×</button>
+        <div class="title" id="pp-panel-title">
+            <span>🔍</span> Perspective Prism${cachedBadge}
+        </div>
+        <button class="close-btn" aria-label="Close panel">×</button>
     `;
   header.querySelector(".close-btn").onclick = removePanel;
 
-  // Claims
+  // Content Area
   const content = document.createElement("div");
   content.className = "content";
 
@@ -444,8 +565,14 @@ function showResults(data) {
       const card = document.createElement("div");
       card.className = "claim-card";
 
+      // 1. Claim Text
+      const claimText = document.createElement("div");
+      claimText.className = "claim-text";
+      claimText.textContent = claim.claim_text;
+      card.appendChild(claimText);
+
+      // 2. Overall Assessment
       const assessment = claim.truth_profile?.overall_assessment || "Unknown";
-      // Simple heuristic for color class
       let assessClass = "low";
       if (
         assessment.toLowerCase().includes("true") ||
@@ -458,34 +585,92 @@ function showResults(data) {
       )
         assessClass = "medium";
 
-      const claimTextDiv = document.createElement("div");
-      claimTextDiv.className = "claim-text";
-      claimTextDiv.textContent = claim.claim_text;
+      const badge = document.createElement("div");
+      badge.className = `assessment-badge ${assessClass}`;
+      badge.textContent = assessment;
+      card.appendChild(badge);
 
-      const assessmentDiv = document.createElement("div");
-      assessmentDiv.className = `assessment ${assessClass}`;
-      assessmentDiv.textContent = assessment;
+      // 3. Perspectives
+      if (claim.truth_profile?.perspectives) {
+        const pTitle = document.createElement("div");
+        pTitle.className = "section-title";
+        pTitle.textContent = "Perspectives";
+        card.appendChild(pTitle);
 
-      const perspectivesDiv = document.createElement("div");
-      perspectivesDiv.className = "perspectives";
-      Object.entries(claim.truth_profile?.perspectives || {}).forEach(
-        ([key, val]) => {
-          const perDiv = document.createElement("div");
-          const strong = document.createElement("strong");
-          strong.textContent = key + ":";
-          perDiv.appendChild(strong);
-          perDiv.appendChild(document.createTextNode(" " + val.assessment));
-          perspectivesDiv.appendChild(perDiv);
-        },
-      );
+        const pGrid = document.createElement("div");
+        pGrid.className = "perspectives-grid";
 
-      card.appendChild(claimTextDiv);
-      card.appendChild(assessmentDiv);
-      card.appendChild(perspectivesDiv);
+        Object.entries(claim.truth_profile.perspectives).forEach(
+          ([key, val]) => {
+            if (!val) return;
+            const row = document.createElement("div");
+            row.className = "perspective-row";
+
+            // Format key (e.g., partisan_left -> Partisan Left)
+            const label = key
+              .split("_")
+              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+              .join(" ");
+
+            row.innerHTML = `
+                <span class="perspective-name">${label}</span>
+                <span class="perspective-val">${val.assessment}</span>
+            `;
+            pGrid.appendChild(row);
+          },
+        );
+        card.appendChild(pGrid);
+      }
+
+      // 4. Bias Indicators
+      const bias = claim.truth_profile?.bias_indicators;
+      if (bias) {
+        // Fallacies & Manipulation
+        const indicators = [
+          ...(bias.logical_fallacies || []),
+          ...(bias.emotional_manipulation || []),
+        ];
+
+        if (indicators.length > 0) {
+          const bTitle = document.createElement("div");
+          bTitle.className = "section-title";
+          bTitle.textContent = "Bias Indicators";
+          card.appendChild(bTitle);
+
+          const bTags = document.createElement("div");
+          bTags.className = "bias-tags";
+          indicators.forEach((ind) => {
+            const tag = document.createElement("span");
+            tag.className = "bias-tag";
+            tag.textContent = ind;
+            bTags.appendChild(tag);
+          });
+          card.appendChild(bTags);
+        }
+
+        // Deception Score
+        if (typeof bias.deception_score === "number") {
+          const dDiv = document.createElement("div");
+          dDiv.className = "deception-score";
+          dDiv.innerHTML = `
+                <span>Deception Risk:</span>
+                <div class="score-bar">
+                    <div class="score-fill" style="width: ${bias.deception_score * 10}%"></div>
+                </div>
+                <span>${bias.deception_score}/10</span>
+            `;
+          card.appendChild(dDiv);
+        }
+      }
+
       content.appendChild(card);
     });
   } else {
-    content.innerHTML = "<p>No claims extracted.</p>";
+    content.innerHTML = `
+        <div style="text-align: center; color: #606060; padding: 20px;">
+            <p>No claims extracted from this video.</p>
+        </div>
+    `;
   }
 
   container.appendChild(header);
@@ -498,11 +683,246 @@ function showResults(data) {
   analysisPanel = panel;
 }
 
+function showPanelLoading() {
+  removePanel();
+  clearLoadingTimer();
+
+  const panel = document.createElement("div");
+  panel.id = PANEL_ID;
+  panel.setAttribute("role", "dialog");
+  panel.setAttribute("aria-modal", "true");
+  panel.setAttribute("aria-labelledby", "pp-panel-loading-title");
+
+  const shadow = panel.attachShadow({ mode: "open" });
+
+  const style = document.createElement("style");
+  style.textContent = `
+        :host {
+            all: initial;
+            position: fixed;
+            top: 60px;
+            right: 20px;
+            width: 400px;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 12px;
+            z-index: 9999;
+            font-family: Roboto, Arial, sans-serif;
+            color: #0f0f0f;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 24px;
+            text-align: center;
+        }
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e5e5e5;
+            border-top-color: #065fd4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        .message {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #0f0f0f;
+        }
+        .submessage {
+            font-size: 13px;
+            color: #606060;
+            margin-bottom: 20px;
+        }
+        .cancel-btn {
+            display: none;
+            padding: 8px 16px;
+            background: #f1f1f1;
+            border: none;
+            border-radius: 18px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .cancel-btn:hover {
+            background: #d9d9d9;
+        }
+        .cancel-btn.visible {
+            display: inline-block;
+        }
+    `;
+
+  const container = document.createElement("div");
+  container.innerHTML = `
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <div class="message" id="pp-panel-loading-title">Analyzing video...</div>
+            <div class="submessage" id="pp-loading-submessage"></div>
+            <button class="cancel-btn" id="pp-cancel-btn">Cancel</button>
+        </div>
+    `;
+
+  shadow.appendChild(style);
+  shadow.appendChild(container);
+
+  document.body.appendChild(panel);
+  analysisPanel = panel;
+
+  const messageEl = shadow.getElementById("pp-loading-submessage");
+  const cancelBtn = shadow.getElementById("pp-cancel-btn");
+
+  // After 10s, update message
+  loadingTimer = setTimeout(() => {
+    messageEl.textContent = "Still analyzing... This may take up to 2 minutes";
+  }, 10000);
+
+  // After 15s, show cancel button
+  setTimeout(() => {
+    cancelBtn.classList.add("visible");
+  }, 15000);
+
+  // Cancel handler
+  cancelBtn.onclick = () => {
+    cancelRequest = true;
+    clearLoadingTimer();
+    removePanel();
+    setButtonState("idle");
+  };
+}
+
+function showPanelError(errorMessage) {
+  removePanel();
+  clearLoadingTimer();
+
+  const panel = document.createElement("div");
+  panel.id = PANEL_ID;
+  panel.setAttribute("role", "dialog");
+  panel.setAttribute("aria-modal", "true");
+  panel.setAttribute("aria-labelledby", "pp-panel-error-title");
+
+  const shadow = panel.attachShadow({ mode: "open" });
+
+  const style = document.createElement("style");
+  style.textContent = `
+        :host {
+            all: initial;
+            position: fixed;
+            top: 60px;
+            right: 20px;
+            width: 400px;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 12px;
+            z-index: 9999;
+            font-family: Roboto, Arial, sans-serif;
+            color: #0f0f0f;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .error-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 24px;
+            text-align: center;
+        }
+        .error-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #c5221f;
+        }
+        .message {
+            font-size: 14px;
+            color: #606060;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+        .actions {
+            display: flex;
+            gap: 12px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 18px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .retry-btn {
+            background: #065fd4;
+            color: white;
+        }
+        .retry-btn:hover {
+            background: #0553bf;
+        }
+        .close-btn {
+            background: #f1f1f1;
+            color: #0f0f0f;
+        }
+        .close-btn:hover {
+            background: #d9d9d9;
+        }
+    `;
+
+  const container = document.createElement("div");
+  container.innerHTML = `
+        <div class="error-container">
+            <div class="error-icon">⚠️</div>
+            <div class="title" id="pp-panel-error-title">Analysis Failed</div>
+            <div class="message">${errorMessage}</div>
+            <div class="actions">
+                <button class="btn retry-btn" id="pp-retry-btn">Retry</button>
+                <button class="btn close-btn" id="pp-close-btn">Close</button>
+            </div>
+        </div>
+    `;
+
+  shadow.appendChild(style);
+  shadow.appendChild(container);
+
+  document.body.appendChild(panel);
+  analysisPanel = panel;
+
+  shadow.getElementById("pp-retry-btn").onclick = handleAnalysisClick;
+  shadow.getElementById("pp-close-btn").onclick = removePanel;
+}
+
+function clearLoadingTimer() {
+  if (loadingTimer) {
+    clearTimeout(loadingTimer);
+    loadingTimer = null;
+  }
+}
+
 function showError(msg) {
   alert(`Perspective Prism Error: ${msg}`);
 }
 
 function removePanel() {
+  clearLoadingTimer();
   if (analysisPanel) {
     analysisPanel.remove();
     analysisPanel = null;

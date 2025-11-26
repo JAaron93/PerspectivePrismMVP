@@ -260,14 +260,16 @@
       - Update pendingRequests Map
     - _Requirements: 3.1, 5.2_
 
-- [ ] 7. Implement Analysis Panel UI component
-  - [ ] 7.1 Create panel structure with Shadow DOM
+- [/] 7. Implement Analysis Panel UI component
+  - [x] 7.1 Create panel structure with Shadow DOM
     - Create panel container with role="dialog" and aria-modal="true"
     - Implement style isolation with Shadow DOM
     - Add panel header with title and close button
     - Create scrollable content area
-    - _Requirements: 4.1, 4.5_
-  - [ ] 7.2 Implement panel states
+    - Display claims with perspectives and bias indicators
+    - Add deception score visualization
+    - _Requirements: 4.1, 4.2, 4.6_
+  - [x] 7.2 Implement panel states
     - Create loading state with spinner and progress indicator
     - Add long-running analysis feedback:
       - Show "Analyzing video..." message initially
