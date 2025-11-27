@@ -232,7 +232,29 @@ class ConsentManager {
       try {
         if (isUpdate) {
           // If declining update, revoke consent entirely
-          chrome.runtime.sendMessage({ type: "REVOKE_CONSENT" });
+          try {
+            await new Promise((resolve, reject) => {
+              chrome.runtime.sendMessage(
+                { type: "REVOKE_CONSENT" },
+                (response) => {
+                  if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                  } else if (response && response.error) {
+                    reject(new Error(response.error));
+                  } else {
+                    resolve(response);
+                  }
+                },
+              );
+            });
+          } catch (revokeError) {
+            console.error(
+              "[Perspective Prism] Failed to revoke consent via background:",
+              revokeError,
+            );
+            // Fallback: try to save local consent as false at least
+            await this.saveConsent(false);
+          }
         } else {
           await this.saveConsent(false);
         }
@@ -244,8 +266,7 @@ class ConsentManager {
           error,
         );
         alert("Failed to save your consent preference. Please try again.");
-        host.remove();
-        callback(false);
+        // Keep dialog open for retry
       }
     };
 
