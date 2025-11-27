@@ -398,23 +398,21 @@
                         <button class="btn close-btn-action" onclick="removePanel()">Close</button>
                     </div>
                 </div>
-        function toggleDarkMode() {
-            const isDark = document.getElementById('darkModeToggle').checked;
-            if (isDark) {
-                document.documentElement.setAttribute('dark', '');
-                if (currentPanel) currentPanel.classList.add('dark-mode');
-            } else {
-                document.documentElement.removeAttribute('dark');
-                if (currentPanel) currentPanel.classList.remove('dark-mode');
-            }
-        }
-                    <p>No claims extracted from this video.</p>
-                </div>
             `;
+        createPanel(container, isDarkMode);
+      }
 
-        container.appendChild(header);
-        container.appendChild(content);
-
+      function showEmptyPanel() {
+        const isDarkMode = document.documentElement.hasAttribute("dark");
+        const container = document.createElement("div");
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">🔍</div>
+                <div class="empty-title">No Claims Found</div>
+                <p>We couldn't identify any verifiable claims in this video.</p>
+                <button class="btn close-btn-action" onclick="removePanel()">Close</button>
+            </div>
+        `;
         createPanel(container, isDarkMode);
       }
 

@@ -1,6 +1,6 @@
 /**
  * Perspective Prism - Analysis Panel Styles
- * 
+ *
  * Comprehensive styles for the analysis panel with:
  * - Shadow DOM isolation
  * - Dark mode support matching YouTube theme
@@ -10,7 +10,7 @@
  * - Accessibility features
  */
 
-const PANEL_STYLES = `
+var PANEL_STYLES = `
 /* ============================================
    Host Container - Fixed Position Panel
    ============================================ */
@@ -1037,6 +1037,6 @@ const PANEL_STYLES = `
 `;
 
 // Export for use in content script
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { PANEL_STYLES };
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { PANEL_STYLES };
 }
