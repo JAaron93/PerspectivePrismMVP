@@ -1513,6 +1513,8 @@ function handleNavigation() {
       
       // Small delay to ensure DOM is ready for injection
       setTimeout(() => {
+        // Verify we're still on the same video
+        if (extractVideoId() !== currentVideoId) return;
         injectButton();
         setupObservers();
       }, 500);
