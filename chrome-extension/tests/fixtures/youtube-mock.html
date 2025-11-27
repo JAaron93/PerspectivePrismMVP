@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    <title>YouTube Mock</title>
+    <link rel="stylesheet" href="../../content.css" />
+  </head>
+  <body>
+    <!-- Mock YouTube Structure -->
+    <div id="content">
+      <div id="page-manager">
+        <div id="columns">
+          <div id="primary">
+            <div id="primary-inner">
+              <div id="player"></div>
+              <div id="below">
+                <div id="top-level-buttons-computed">
+                  <!-- Analysis button will be injected here -->
+                </div>
+                <div id="menu-container"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Load Extension Scripts (Order matters matching manifest.json) -->
+    <script src="../../config.js"></script>
+    <script src="../../consent.js"></script>
+    <script src="../../content.js"></script>
+  </body>
+</html>

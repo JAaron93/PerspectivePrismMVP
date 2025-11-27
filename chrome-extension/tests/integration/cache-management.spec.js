@@ -32,6 +32,9 @@ test.describe("Cache Management", () => {
 
     // Reload page to test cache
     await page.reload();
+    // Remove mocks - cached results should work without network
+    await context.unroute("**/analyze/jobs");
+    await context.unroute("**/analyze/jobs/job-cache");
     await expect(analysisButton).toBeVisible();
     await analysisButton.click();
 

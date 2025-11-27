@@ -25,9 +25,11 @@ test.describe("Error Handling", () => {
   test("should handle invalid backend URL", async ({ page, context }) => {
     // This might require changing settings first
     // Navigate to options page
-    const extensionId = await (await context.serviceWorkers())[0]
-      .url()
-      .split("/")[2];
+    const serviceWorkers = await context.serviceWorkers();
+    if (serviceWorkers.length === 0) {
+      throw new Error("No service workers found");
+    }
+    const extensionId = serviceWorkers[0].url().split("/")[2];
     await page.goto(`chrome-extension://${extensionId}/options.html`);
 
     await page.fill("#backendUrl", "invalid-url");
