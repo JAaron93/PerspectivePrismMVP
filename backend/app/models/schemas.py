@@ -1,6 +1,8 @@
-from pydantic import BaseModel, HttpUrl, Field
-from typing import List, Optional, Dict
 from enum import Enum
+from typing import Dict, List, Optional
+
+from pydantic import BaseModel, Field, HttpUrl
+
 
 class PerspectiveType(str, Enum):
     SCIENTIFIC = "Scientific"
@@ -8,18 +10,22 @@ class PerspectiveType(str, Enum):
     PARTISAN_LEFT = "Partisan (Left)"
     PARTISAN_RIGHT = "Partisan (Right)"
 
+
 class VideoRequest(BaseModel):
     url: HttpUrl
-    
+
+
 class TranscriptSegment(BaseModel):
     text: str
     start: float
     duration: float
 
+
 class Transcript(BaseModel):
     video_id: str
     segments: List[TranscriptSegment]
     full_text: str
+
 
 class Claim(BaseModel):
     id: str
@@ -27,6 +33,8 @@ class Claim(BaseModel):
     timestamp_start: Optional[float] = None
     timestamp_end: Optional[float] = None
     context: Optional[str] = None
+    metadata: Optional[Dict] = None
+
 
 class Evidence(BaseModel):
     url: str
@@ -35,12 +43,14 @@ class Evidence(BaseModel):
     source: str
     perspective: PerspectiveType
 
+
 class PerspectiveAnalysis(BaseModel):
     perspective: PerspectiveType
     stance: str = Field(..., description="Support, Refute, or Ambiguous")
     confidence: float
     explanation: str
     evidence: List[Evidence]
+
 
 class BiasAnalysis(BaseModel):
     framing_bias: Optional[str] = None
@@ -50,24 +60,29 @@ class BiasAnalysis(BaseModel):
     deception_rating: float = Field(..., ge=0, le=10)
     deception_rationale: str
 
+
 class TruthProfile(BaseModel):
     claim: Claim
     perspectives: List[PerspectiveAnalysis]
     bias_analysis: BiasAnalysis
     overall_assessment: str
 
+
 class AnalysisMetadata(BaseModel):
     analyzed_at: str
+
 
 class BiasIndicators(BaseModel):
     logical_fallacies: List[str] = []
     emotional_manipulation: List[str] = []
     deception_score: float
 
+
 class ClientTruthProfile(BaseModel):
     overall_assessment: str
     perspectives: Dict[str, PerspectiveAnalysis]
     bias_indicators: BiasIndicators
+
 
 class ClientClaimAnalysis(BaseModel):
     claim_text: str
@@ -75,19 +90,23 @@ class ClientClaimAnalysis(BaseModel):
     video_timestamp_end: Optional[float] = None
     truth_profile: ClientTruthProfile
 
+
 class AnalysisResponse(BaseModel):
     video_id: str
     metadata: AnalysisMetadata
     claims: List[ClientClaimAnalysis]
 
+
 class JobResponse(BaseModel):
     job_id: str
+
 
 class JobStatus(str, Enum):
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
     FAILED = "failed"
+
 
 class JobStatusResponse(BaseModel):
     job_id: str

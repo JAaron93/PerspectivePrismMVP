@@ -55,12 +55,19 @@ class ClaimExtractor:
             fetched_transcript = api.fetch(video_id)
 
             # Convert to our schema
-            segments = [
-                TranscriptSegment(
-                    text=item.text, start=item.start, duration=item.duration
-                )
-                for item in fetched_transcript
-            ]
+            segments = []
+            for item in fetched_transcript:
+                try:
+                    segments.append(
+                        TranscriptSegment(
+                            text=item.get("text", ""),
+                            start=item.get("start", 0.0),
+                            duration=item.get("duration", 0.0),
+                        )
+                    )
+                except (KeyError, TypeError) as e:
+                    logger.warning(f"Skipping malformed transcript segment: {e}")
+                    continue
 
             full_text = " ".join([s.text for s in segments])
             return Transcript(video_id=video_id, segments=segments, full_text=full_text)
