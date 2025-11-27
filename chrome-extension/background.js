@@ -310,7 +310,7 @@ async function handleRevokeConsent(sendResponse) {
     await chrome.alarms.clearAll();
 
     // 6. Set consentGiven to false in storage
-    await new Promise((resolve) => {
+    await new Promise((resolve, reject) => {
       chrome.storage.sync.set(
         {
           consent: {
@@ -320,7 +320,13 @@ async function handleRevokeConsent(sendResponse) {
             policyVersion: "1.0.0", // Keep version for reference
           },
         },
-        resolve,
+        () => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve();
+          }
+        },
       );
     });
 

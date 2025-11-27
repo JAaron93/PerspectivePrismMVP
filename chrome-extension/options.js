@@ -406,20 +406,25 @@ async function revokeConsent() {
 
   try {
     // Send revocation message to background script
-    await new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage({ type: "REVOKE_CONSENT" }, (response) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
-        } else if (response && response.error) {
-          reject(new Error(response.error));
-        } else {
-          resolve(response);
-        }
-      });
-    });
+    await Promise.race([
+      new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ type: "REVOKE_CONSENT" }, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else if (response && response.error) {
+            reject(new Error(response.error));
+          } else {
+            resolve(response);
+          }
+        });
+      }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Request timeout")), 10000),
+      ),
+    ]);
 
     // Update UI to reflect revocation
-    allowAnalysisCheckbox.checked = false;
+    await loadSettings();
     showSaveSuccess("✓ Consent revoked and data cleared");
     console.log("[Options] Consent revoked");
   } catch (error) {

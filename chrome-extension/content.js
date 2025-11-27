@@ -367,9 +367,9 @@ async function handleAnalysisClick() {
     }
 
     const consentManager = new ConsentManager();
-    const hasConsent = await consentManager.checkConsent();
+    const consent = await consentManager.checkConsent();
 
-    if (!hasConsent) {
+    if (!consent.hasConsent) {
       setButtonState("idle"); // Reset button state
       removePanel(); // Ensure loading panel is closed
       consentManager.showConsentDialog(async (allowed) => {
@@ -377,7 +377,7 @@ async function handleAnalysisClick() {
           // Retry analysis with consent
           handleAnalysisClick();
         }
-      });
+      }, consent); // Pass consent object (with reason) to dialog
       return;
     }
   } catch (error) {

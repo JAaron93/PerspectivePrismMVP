@@ -441,7 +441,7 @@
       - [x] Close analysis panel if open
       - [x] Disable analysis button with tooltip: "Consent required"
     - _Requirements: 7.7_
-  - [ ] 11.4 Implement privacy policy versioning
+  - [-] 11.4 Implement privacy policy versioning
     - Store current policy version in chrome.storage.sync:
       - Key: `privacyPolicyVersion`
       - Current version: "1.0.0"

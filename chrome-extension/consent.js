@@ -21,18 +21,22 @@ class ConsentManager {
             "[Perspective Prism] Failed to check consent:",
             chrome.runtime.lastError,
           );
-          resolve(false);
+          resolve({ hasConsent: false, reason: "error" });
           return;
         }
         const consent = result[this.STORAGE_KEY];
-        if (
-          consent &&
-          consent.given &&
-          consent.policyVersion === this.POLICY_VERSION
-        ) {
-          resolve(true);
+
+        if (!consent || !consent.given) {
+          resolve({ hasConsent: false, reason: "missing" });
+        } else if (consent.policyVersion !== this.POLICY_VERSION) {
+          resolve({
+            hasConsent: false,
+            reason: "version_mismatch",
+            currentVersion: this.POLICY_VERSION,
+            storedVersion: consent.policyVersion,
+          });
         } else {
-          resolve(false);
+          resolve({ hasConsent: true, reason: "valid" });
         }
       });
     });
@@ -72,11 +76,14 @@ class ConsentManager {
    * Show the consent dialog.
    * @param {Function} callback - Called with true (allowed) or false (denied).
    */
-  showConsentDialog(callback) {
+  showConsentDialog(callback, options = {}) {
     // Prevent duplicate dialogs
     if (document.getElementById("pp-consent-dialog-host")) {
       return;
     }
+
+    const isUpdate = options.reason === "version_mismatch";
+    const newVersion = this.POLICY_VERSION;
 
     const host = document.createElement("div");
     host.id = "pp-consent-dialog-host";
@@ -109,6 +116,15 @@ class ConsentManager {
             pointer-events: auto; /* Re-enable clicks for dialog */
             animation: fadeIn 0.3s ease-out;
         `;
+
+    const title = isUpdate ? "Privacy Policy Updated" : "Privacy & Consent";
+    const message = isUpdate
+      ? `<p>Our privacy policy has been updated to version ${newVersion}. Please review the changes to continue using Perspective Prism.</p>`
+      : `<p>To analyze this video, Perspective Prism needs to send the video ID to our backend server. We do not collect your browsing history or personal information.</p>
+         <p>Analysis results are cached locally in your browser for 24 hours.</p>`;
+
+    const denyText = isUpdate ? "Decline" : "Deny";
+    const allowText = isUpdate ? "Accept" : "Allow and Continue";
 
     container.innerHTML = `
             <style>
@@ -169,18 +185,12 @@ class ConsentManager {
                     text-decoration: underline;
                 }
             </style>
-            <h2>Privacy & Consent</h2>
-            <p>
-                To analyze this video, Perspective Prism needs to send the video ID to our backend server. 
-                We do not collect your browsing history or personal information.
-            </p>
-            <p>
-                Analysis results are cached locally in your browser for 24 hours.
-            </p>
+            <h2>${title}</h2>
+            ${message}
             <div class="buttons">
-                <a class="learn-more" id="learn-more-link">Learn More</a>
-                <button class="btn-secondary" id="deny-btn">Deny</button>
-                <button class="btn-primary" id="allow-btn">Allow and Continue</button>
+                <a class="learn-more" id="learn-more-link">${isUpdate ? "View Changes" : "Learn More"}</a>
+                <button class="btn-secondary" id="deny-btn">${denyText}</button>
+                <button class="btn-primary" id="allow-btn">${allowText}</button>
             </div>
         `;
 
@@ -220,7 +230,12 @@ class ConsentManager {
 
     denyBtn.onclick = async () => {
       try {
-        await this.saveConsent(false);
+        if (isUpdate) {
+          // If declining update, revoke consent entirely
+          chrome.runtime.sendMessage({ type: "REVOKE_CONSENT" });
+        } else {
+          await this.saveConsent(false);
+        }
         host.remove();
         callback(false);
       } catch (error) {
