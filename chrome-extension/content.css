@@ -1,89 +1,239 @@
 /* Perspective Prism Content Styles */
 
+/* ============================================
+   Analysis Button - Main Styles
+   ============================================ */
+
 .pp-ext-button {
+    /* Layout */
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background-color: #f1f1f1;
-    color: #0f0f0f;
-    border: none;
-    border-radius: 18px;
-    padding: 0 16px;
+    
+    /* Sizing */
     height: 36px;
+    padding: 0 16px;
+    min-width: 140px;
+    
+    /* Spacing */
+    margin-left: 8px;
+    
+    /* Typography */
     font-size: 14px;
     font-weight: 500;
     font-family: Roboto, Arial, sans-serif;
+    line-height: 1;
+    white-space: nowrap;
+    
+    /* Colors - Light Mode (Default/Idle State) */
+    background-color: #f1f1f1;
+    color: #0f0f0f;
+    
+    /* Border */
+    border: none;
+    border-radius: 18px;
+    
+    /* Interaction */
     cursor: pointer;
-    margin-left: 8px;
-    transition: background-color 0.2s, color 0.2s;
+    user-select: none;
+    -webkit-user-select: none;
+    
+    /* Transitions */
+    transition: background-color 0.2s ease, 
+                color 0.2s ease, 
+                transform 0.1s ease,
+                box-shadow 0.2s ease;
+    
+    /* Positioning */
+    position: relative;
+    z-index: 100; /* Ensure button appears above YouTube elements */
 }
 
-.pp-ext-button:hover {
+/* ============================================
+   Button States - Hover & Active
+   ============================================ */
+
+.pp-ext-button:hover:not(:disabled) {
     background-color: #d9d9d9;
 }
+
+.pp-ext-button:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+/* ============================================
+   Button States - Disabled
+   ============================================ */
 
 .pp-ext-button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
 
+/* ============================================
+   Button States - Focus (Accessibility)
+   ============================================ */
+
 .pp-ext-button:focus-visible {
-    outline: 2px solid #0f0f0f;
+    outline: 2px solid #065fd4;
     outline-offset: 2px;
 }
 
-/* State Styles */
+/* ============================================
+   Button States - Success
+   ============================================ */
+
 .pp-ext-button.pp-state-success {
     background-color: #e6f4ea;
     color: #137333;
 }
 
-.pp-ext-button.pp-state-success:hover {
+.pp-ext-button.pp-state-success:hover:not(:disabled) {
     background-color: #ceead6;
 }
+
+.pp-ext-button.pp-state-success:focus-visible {
+    outline-color: #137333;
+}
+
+/* ============================================
+   Button States - Error
+   ============================================ */
 
 .pp-ext-button.pp-state-error {
     background-color: #fce8e6;
     color: #c5221f;
 }
 
-.pp-ext-button.pp-state-error:hover {
+.pp-ext-button.pp-state-error:hover:not(:disabled) {
     background-color: #fad2cf;
 }
 
-html[dark] .pp-ext-button:focus-visible {
-    outline-color: #f1f1f1;
+.pp-ext-button.pp-state-error:focus-visible {
+    outline-color: #c5221f;
 }
+
+/* ============================================
+   Button Icon
+   ============================================ */
 
 .pp-icon {
     margin-right: 6px;
     font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Dark mode support */
+/* ============================================
+   Loading Animation (for loading state)
+   ============================================ */
+
+@keyframes pp-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.pp-ext-button[aria-busy="true"] .pp-icon {
+    animation: pp-spin 1s linear infinite;
+}
+
+/* ============================================
+   Dark Mode Support
+   ============================================ */
+
+/* Dark Mode - Default/Idle State */
 html[dark] .pp-ext-button {
     background-color: #272727;
     color: #f1f1f1;
 }
 
-html[dark] .pp-ext-button:hover {
+html[dark] .pp-ext-button:hover:not(:disabled) {
     background-color: #3f3f3f;
 }
 
+html[dark] .pp-ext-button:focus-visible {
+    outline-color: #aecbfa;
+}
+
+/* Dark Mode - Success State */
 html[dark] .pp-ext-button.pp-state-success {
-    background-color: #137333;
-    color: #e6f4ea;
-}
-
-html[dark] .pp-ext-button.pp-state-success:hover {
     background-color: #0d5224;
+    color: #81c995;
 }
 
+html[dark] .pp-ext-button.pp-state-success:hover:not(:disabled) {
+    background-color: #0a3f1c;
+}
+
+html[dark] .pp-ext-button.pp-state-success:focus-visible {
+    outline-color: #81c995;
+}
+
+/* Dark Mode - Error State */
 html[dark] .pp-ext-button.pp-state-error {
-    background-color: #c5221f;
-    color: #fce8e6;
+    background-color: #8c1816;
+    color: #f28b82;
 }
 
-html[dark] .pp-ext-button.pp-state-error:hover {
-    background-color: #8c1816;
+html[dark] .pp-ext-button.pp-state-error:hover:not(:disabled) {
+    background-color: #6e1311;
+}
+
+html[dark] .pp-ext-button.pp-state-error:focus-visible {
+    outline-color: #f28b82;
+}
+
+/* ============================================
+   Responsive Adjustments
+   ============================================ */
+
+/* Smaller screens - reduce padding slightly */
+@media (max-width: 768px) {
+    .pp-ext-button {
+        padding: 0 12px;
+        min-width: 120px;
+        font-size: 13px;
+    }
+    
+    .pp-icon {
+        font-size: 14px;
+        margin-right: 4px;
+    }
+}
+
+/* ============================================
+   High Contrast Mode Support
+   ============================================ */
+
+@media (prefers-contrast: high) {
+    .pp-ext-button {
+        border: 2px solid currentColor;
+    }
+    
+    .pp-ext-button:focus-visible {
+        outline-width: 3px;
+    }
+}
+
+/* ============================================
+   Reduced Motion Support (Accessibility)
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    .pp-ext-button {
+        transition: none;
+    }
+    
+    .pp-ext-button:active:not(:disabled) {
+        transform: none;
+    }
+    
+    .pp-ext-button[aria-busy="true"] .pp-icon {
+        animation: none;
+    }
 }

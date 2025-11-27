@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button Styles Test - Perspective Prism</title>
+    <link rel="stylesheet" href="content.css">
+    <style>
+        body {
+            font-family: Roboto, Arial, sans-serif;
+            padding: 40px;
+            background: #f9f9f9;
+        }
+        
+        .test-section {
+            background: white;
+            padding: 30px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #0f0f0f;
+            margin-bottom: 10px;
+        }
+        
+        h2 {
+            color: #606060;
+            font-size: 18px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e5e5e5;
+            padding-bottom: 10px;
+        }
+        
+        .button-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .label {
+            font-size: 14px;
+            color: #606060;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        /* Dark mode simulation */
+        html[dark] {
+            background: #0f0f0f;
+        }
+        
+        html[dark] body {
+            background: #0f0f0f;
+            color: #f1f1f1;
+        }
+        
+        html[dark] .test-section {
+            background: #212121;
+        }
+        
+        html[dark] h1 {
+            color: #f1f1f1;
+        }
+        
+        html[dark] h2 {
+            color: #aaaaaa;
+            border-bottom-color: #3f3f3f;
+        }
+        
+        html[dark] .label {
+            color: #aaaaaa;
+        }
+        
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: #065fd4;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 500;
+            z-index: 1000;
+        }
+        
+        .theme-toggle:hover {
+            background: #0448a0;
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+    
+    <h1>🔍 Perspective Prism - Button Styles Test</h1>
+    <p style="color: #606060; margin-bottom: 30px;">
+        This page tests all button states and styles for the Analysis Button.
+    </p>
+    
+    <!-- Light Mode Tests -->
+    <div class="test-section">
+        <h2>Button States (Light Mode)</h2>
+        
+        <div class="label">Idle State (Default)</div>
+        <div class="button-row">
+            <button class="pp-ext-button" data-pp-analysis-button="true">
+                <span class="pp-icon">🔍</span>
+                <span>Analyze Claims</span>
+            </button>
+        </div>
+        
+        <div class="label">Loading State (with animation)</div>
+        <div class="button-row">
+            <button class="pp-ext-button" disabled aria-busy="true">
+                <span class="pp-icon">⏳</span>
+                <span>Analyzing...</span>
+            </button>
+        </div>
+        
+        <div class="label">Success State</div>
+        <div class="button-row">
+            <button class="pp-ext-button pp-state-success">
+                <span class="pp-icon">✅</span>
+                <span>Analyzed</span>
+            </button>
+        </div>
+        
+        <div class="label">Error State</div>
+        <div class="button-row">
+            <button class="pp-ext-button pp-state-error">
+                <span class="pp-icon">⚠️</span>
+                <span>Retry Analysis</span>
+            </button>
+        </div>
+        
+        <div class="label">Disabled State</div>
+        <div class="button-row">
+            <button class="pp-ext-button" disabled>
+                <span class="pp-icon">🔍</span>
+                <span>Analyze Claims</span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Interactive Tests -->
+    <div class="test-section">
+        <h2>Interactive Tests</h2>
+        
+        <div class="label">Hover Effects (hover over buttons)</div>
+        <div class="button-row">
+            <button class="pp-ext-button">
+                <span class="pp-icon">🔍</span>
+                <span>Hover Me (Idle)</span>
+            </button>
+            
+            <button class="pp-ext-button pp-state-success">
+                <span class="pp-icon">✅</span>
+                <span>Hover Me (Success)</span>
+            </button>
+            
+            <button class="pp-ext-button pp-state-error">
+                <span class="pp-icon">⚠️</span>
+                <span>Hover Me (Error)</span>
+            </button>
+        </div>
+        
+        <div class="label">Focus States (tab through buttons)</div>
+        <div class="button-row">
+            <button class="pp-ext-button">
+                <span class="pp-icon">🔍</span>
+                <span>Tab to Focus 1</span>
+            </button>
+            
+            <button class="pp-ext-button pp-state-success">
+                <span class="pp-icon">✅</span>
+                <span>Tab to Focus 2</span>
+            </button>
+            
+            <button class="pp-ext-button pp-state-error">
+                <span class="pp-icon">⚠️</span>
+                <span>Tab to Focus 3</span>
+            </button>
+        </div>
+        
+        <div class="label">Active State (click and hold)</div>
+        <div class="button-row">
+            <button class="pp-ext-button">
+                <span class="pp-icon">🔍</span>
+                <span>Click and Hold</span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Responsive Tests -->
+    <div class="test-section">
+        <h2>Responsive Behavior</h2>
+        <p style="color: #606060; font-size: 14px; margin-bottom: 16px;">
+            Resize your browser window to see responsive adjustments (breakpoint: 768px)
+        </p>
+        
+        <div class="button-row">
+            <button class="pp-ext-button">
+                <span class="pp-icon">🔍</span>
+                <span>Analyze Claims</span>
+            </button>
+            
+            <button class="pp-ext-button pp-state-success">
+                <span class="pp-icon">✅</span>
+                <span>Analyzed</span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Accessibility Tests -->
+    <div class="test-section">
+        <h2>Accessibility Features</h2>
+        
+        <div class="label">ARIA Attributes</div>
+        <div class="button-row">
+            <button class="pp-ext-button" aria-label="Analyze video claims" role="button" tabindex="0">
+                <span class="pp-icon">🔍</span>
+                <span>With ARIA Label</span>
+            </button>
+            
+            <button class="pp-ext-button" disabled aria-busy="true" aria-label="Analysis in progress">
+                <span class="pp-icon">⏳</span>
+                <span>Loading with ARIA</span>
+            </button>
+        </div>
+        
+        <div class="label">Keyboard Navigation</div>
+        <p style="color: #606060; font-size: 13px; margin-bottom: 12px;">
+            ✓ Tab to navigate<br>
+            ✓ Enter/Space to activate<br>
+            ✓ Focus visible indicators<br>
+            ✓ Reduced motion support (if enabled in OS)
+        </p>
+    </div>
+    
+    <script>
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            if (html.hasAttribute('dark')) {
+                html.removeAttribute('dark');
+            } else {
+                html.setAttribute('dark', '');
+            }
+        }
+        
+        // Add click handlers to demonstrate button behavior
+        document.querySelectorAll('.pp-ext-button:not([disabled])').forEach(button => {
+            button.addEventListener('click', function() {
+                console.log('Button clicked:', this.textContent.trim());
+            });
+        });
+    </script>
+</body>
+</html>

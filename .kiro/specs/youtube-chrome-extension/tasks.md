@@ -388,7 +388,7 @@
     - [x] Add "View Privacy Policy" link
     - _Requirements: 1.5, 7.3, 7.4_
 
-- [-] 11. Implement privacy and consent flow with versioning
+- [x] 11. Implement privacy and consent flow with versioning
   - [x] 11.1 Create privacy notice dialog with "Learn More" functionality
     - Create first-time consent dialog HTML
     - Add "Learn More", "Deny", "Allow and Continue" buttons
@@ -488,7 +488,7 @@
       - [x] Re-inject button if needed (check for existing button first)
       - [x] Update panel state for new video (close old panel, reset state)
     - _Requirements: 2.5_
-  - [-] 12.2 Implement cleanup on navigation with explicit sequencing
+  - [x] 12.2 Implement cleanup on navigation with explicit sequencing
     - **Cleanup sequence (must follow this order to avoid races):**
       1. **Disconnect MutationObserver:**
          - Call observer.disconnect() for all observers
@@ -514,25 +514,25 @@
       - Use try-finally to ensure cleanup completes
     - Log cleanup completion for debugging
     - _Requirements: 8.4_
-  - [ ] 12.3 Add beforeunload handler (best-effort only)
+  - [x] 12.3 Add beforeunload handler (best-effort only)
     - **Important: beforeunload is unreliable in modern browsers**
       - Modern browsers may not fire beforeunload consistently
       - Mobile browsers often skip beforeunload entirely
       - Service workers may be terminated without beforeunload
       - **Do NOT rely on beforeunload for critical state saving**
     - **Critical state must be saved proactively:**
-      - Save request state immediately when starting analysis
-      - Update persisted state on each retry attempt
-      - Save consent/config changes immediately on user action
-      - Use chrome.storage.local.set() synchronously during operations
+      - [x] Save request state immediately when starting analysis
+      - [x] Update persisted state on each retry attempt
+      - [x] Save consent/config changes immediately on user action
+      - [x] Use chrome.storage.local.set() synchronously during operations
     - **beforeunload handler (best-effort cleanup only):**
-      - Cancel in-flight requests (may not complete)
-      - Clear non-critical timers
-      - Log cleanup attempt (may not be written)
-      - Do NOT attempt to save critical state here
+      - [x] Cancel in-flight requests (may not complete)
+      - [x] Clear non-critical timers
+      - [x] Log cleanup attempt (may not be written)
+      - [x] Do NOT attempt to save critical state here
     - **Document in code comments:**
-      - "beforeunload is unreliable - critical state saved proactively"
-      - "This handler is best-effort cleanup only"
+      - [x] "beforeunload is unreliable - critical state saved proactively"
+      - [x] "This handler is best-effort cleanup only"
     - _Requirements: 8.4_
 
 - [ ]\* 13. Implement logging with privacy protection
@@ -551,13 +551,13 @@
     - _Requirements: 6.4_
 
 - [ ] 14. Add styling and theming
-  - [ ] 14.1 Create content.css for injected button
+  - [x] 14.1 Create content.css for injected button
     - Style button to match YouTube UI
     - Add button states (idle, loading, error, success)
     - Ensure proper z-index and positioning
     - Add hover and focus states
     - _Requirements: 2.2, 2.3_
-  - [ ] 14.2 Create panel styles with Shadow DOM
+  - [x] 14.2 Create panel styles with Shadow DOM
     - Style panel container (fixed position, right side)
     - Add dark mode support matching YouTube theme
     - Style claims with expand/collapse animations
@@ -565,7 +565,7 @@
     - Add responsive design (min 320px, max 480px)
     - Ensure 4.5:1 color contrast ratio
     - _Requirements: 4.5, 4.6_
-  - [ ] 14.3 Create popup and options page styles
+  - [x] 14.3 Create popup and options page styles
     - Style popup with consistent branding
     - Style options page form elements
     - Add validation error styling
