@@ -1,179 +1,201 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Panel Styles Test - Perspective Prism</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background: #f0f0f0;
-        }
-        .controls {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            z-index: 10000;
-        }
-        .controls h3 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
-        }
-        .controls button {
-            display: block;
-            width: 100%;
-            margin: 5px 0;
-            padding: 8px;
-            border: none;
-            background: #065fd4;
-            color: white;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-        }
-        .controls button:hover {
-            background: #0553bf;
-        }
-        .controls label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 10px 0;
-            font-size: 13px;
-        }
-        html[dark] {
-            background: #181818;
-            color: #f1f1f1;
-        }
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        background: #f0f0f0;
+      }
+      .controls {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        z-index: 10000;
+      }
+      .controls h3 {
+        margin: 0 0 10px 0;
+        font-size: 14px;
+      }
+      .controls button {
+        display: block;
+        width: 100%;
+        margin: 5px 0;
+        padding: 8px;
+        border: none;
+        background: #065fd4;
+        color: white;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .controls button:hover {
+        background: #0553bf;
+      }
+      .controls label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 10px 0;
+        font-size: 13px;
+      }
+      html[dark] {
+        background: #181818;
+        color: #f1f1f1;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="controls">
-        <h3>Panel Style Tests</h3>
-        <button onclick="showResultsPanel()">Show Results Panel</button>
-        <button onclick="showLoadingPanel()">Show Loading Panel</button>
-        <button onclick="showErrorPanel()">Show Error Panel</button>
-        <button onclick="showEmptyPanel()">Show Empty Panel</button>
-        <button onclick="removePanel()">Remove Panel</button>
-        <label>
-            <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()">
-            Dark Mode
-        </label>
-        <label>
-            <input type="checkbox" id="responsiveToggle" onchange="toggleResponsive()">
-            Mobile View (480px)
-        </label>
+      <h3>Panel Style Tests</h3>
+      <button onclick="showResultsPanel()">Show Results Panel</button>
+      <button onclick="showLoadingPanel()">Show Loading Panel</button>
+      <button onclick="showErrorPanel()">Show Error Panel</button>
+      <button onclick="showEmptyPanel()">Show Empty Panel</button>
+      <button onclick="removePanel()">Remove Panel</button>
+      <label>
+        <input
+          type="checkbox"
+          id="darkModeToggle"
+          onchange="toggleDarkMode()"
+        />
+        Dark Mode
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          id="responsiveToggle"
+          onchange="toggleResponsive()"
+        />
+        Mobile View (480px)
+      </label>
     </div>
 
     <script src="panel-styles.js"></script>
     <script>
-        let currentPanel = null;
+      let currentPanel = null;
 
-        // Mock data for testing
-        const mockData = {
-            video_id: "dQw4w9WgXcQ",
-            claims: [
-                {
-                    claim_text: "This video contains important information about climate change and its effects on global ecosystems.",
-                    truth_profile: {
-                        overall_assessment: "Mostly Accurate",
-                        perspectives: {
-                            scientific: {
-                                assessment: "Well-supported",
-                                confidence: 0.85,
-                                supporting_evidence: ["Peer-reviewed studies", "IPCC reports"]
-                            },
-                            journalistic: {
-                                assessment: "Credible sources",
-                                confidence: 0.78,
-                                supporting_evidence: ["Major news outlets", "Expert interviews"]
-                            },
-                            partisan_left: {
-                                assessment: "Aligns with consensus",
-                                confidence: 0.92,
-                                supporting_evidence: ["Progressive think tanks"]
-                            },
-                            partisan_right: {
-                                assessment: "Contested viewpoint",
-                                confidence: 0.45,
-                                supporting_evidence: ["Alternative interpretations"]
-                            }
-                        },
-                        bias_indicators: {
-                            logical_fallacies: ["Appeal to authority"],
-                            emotional_manipulation: ["Fear appeal"],
-                            deception_score: 3
-                        }
-                    }
+      // Mock data for testing
+      const mockData = {
+        video_id: "dQw4w9WgXcQ",
+        claims: [
+          {
+            claim_text:
+              "This video contains important information about climate change and its effects on global ecosystems.",
+            truth_profile: {
+              overall_assessment: "Mostly Accurate",
+              perspectives: {
+                scientific: {
+                  assessment: "Well-supported",
+                  confidence: 0.85,
+                  supporting_evidence: [
+                    "Peer-reviewed studies",
+                    "IPCC reports",
+                  ],
                 },
-                {
-                    claim_text: "The economy is performing better than ever before in history.",
-                    truth_profile: {
-                        overall_assessment: "Misleading",
-                        perspectives: {
-                            scientific: {
-                                assessment: "Lacks context",
-                                confidence: 0.35,
-                                supporting_evidence: []
-                            },
-                            journalistic: {
-                                assessment: "Requires nuance",
-                                confidence: 0.42,
-                                supporting_evidence: ["Economic data", "Historical comparisons"]
-                            }
-                        },
-                        bias_indicators: {
-                            logical_fallacies: ["Cherry picking", "False equivalence"],
-                            emotional_manipulation: ["Bandwagon effect", "Oversimplification"],
-                            deception_score: 7
-                        }
-                    }
-                }
-            ],
-            metadata: {
-                analyzed_at: new Date().toISOString()
-            }
-        };
+                journalistic: {
+                  assessment: "Credible sources",
+                  confidence: 0.78,
+                  supporting_evidence: [
+                    "Major news outlets",
+                    "Expert interviews",
+                  ],
+                },
+                partisan_left: {
+                  assessment: "Aligns with consensus",
+                  confidence: 0.92,
+                  supporting_evidence: ["Progressive think tanks"],
+                },
+                partisan_right: {
+                  assessment: "Contested viewpoint",
+                  confidence: 0.45,
+                  supporting_evidence: ["Alternative interpretations"],
+                },
+              },
+              bias_indicators: {
+                logical_fallacies: ["Appeal to authority"],
+                emotional_manipulation: ["Fear appeal"],
+                deception_score: 3,
+              },
+            },
+          },
+          {
+            claim_text:
+              "The economy is performing better than ever before in history.",
+            truth_profile: {
+              overall_assessment: "Misleading",
+              perspectives: {
+                scientific: {
+                  assessment: "Lacks context",
+                  confidence: 0.35,
+                  supporting_evidence: [],
+                },
+                journalistic: {
+                  assessment: "Requires nuance",
+                  confidence: 0.42,
+                  supporting_evidence: [
+                    "Economic data",
+                    "Historical comparisons",
+                  ],
+                },
+              },
+              bias_indicators: {
+                logical_fallacies: ["Cherry picking", "False equivalence"],
+                emotional_manipulation: [
+                  "Bandwagon effect",
+                  "Oversimplification",
+                ],
+                deception_score: 7,
+              },
+            },
+          },
+        ],
+        metadata: {
+          analyzed_at: new Date().toISOString(),
+        },
+      };
 
-        function createPanel(content, isDarkMode = false) {
-            removePanel();
+      function createPanel(content, isDarkMode = false) {
+        removePanel();
 
-            const panel = document.createElement("div");
-            panel.id = "pp-analysis-panel";
-            panel.setAttribute("role", "dialog");
-            panel.setAttribute("aria-modal", "true");
+        const panel = document.createElement("div");
+        panel.id = "pp-analysis-panel";
+        panel.setAttribute("role", "dialog");
+        panel.setAttribute("aria-modal", "true");
 
-            const shadow = panel.attachShadow({ mode: "open" });
+        const shadow = panel.attachShadow({ mode: "open" });
 
-            if (isDarkMode) {
-                panel.classList.add('dark-mode');
-            }
-
-            const style = document.createElement("style");
-            style.textContent = PANEL_STYLES;
-
-            shadow.appendChild(style);
-            shadow.appendChild(content);
-
-            document.body.appendChild(panel);
-            currentPanel = panel;
-
-            return shadow;
+        if (isDarkMode) {
+          panel.classList.add("dark-mode");
         }
 
-        function showResultsPanel() {
-            const isDarkMode = document.documentElement.hasAttribute('dark');
-            const container = document.createElement("div");
+        const style = document.createElement("style");
+        style.textContent = PANEL_STYLES;
 
-            // Header
-            const header = document.createElement("div");
-            header.className = "header";
-            header.innerHTML = `
+        shadow.appendChild(style);
+        shadow.appendChild(content);
+
+        document.body.appendChild(panel);
+        currentPanel = panel;
+
+        return shadow;
+      }
+
+      function showResultsPanel() {
+        const isDarkMode = document.documentElement.hasAttribute("dark");
+        const container = document.createElement("div");
+
+        // Header
+        const header = document.createElement("div");
+        header.className = "header";
+        header.innerHTML = `
                 <div class="title">
                     <span class="title-icon">🔍</span> Perspective Prism
                     <span class="badge badge-fresh">Fresh</span>
@@ -184,147 +206,175 @@
                 </div>
             `;
 
-            // Content
-            const content = document.createElement("div");
-            content.className = "content";
+        // Content
+        const content = document.createElement("div");
+        content.className = "content";
 
-            mockData.claims.forEach((claim, index) => {
-                const card = document.createElement("div");
-                card.className = "claim-card";
+        mockData.claims.forEach((claim, index) => {
+          const card = document.createElement("div");
+          card.className = "claim-card";
 
-                const claimHeader = document.createElement("div");
-                claimHeader.className = "claim-header";
-                claimHeader.setAttribute("role", "button");
-                claimHeader.setAttribute("tabindex", "0");
-                claimHeader.setAttribute("aria-expanded", "true");
+          const claimHeader = document.createElement("div");
+          claimHeader.className = "claim-header";
+          claimHeader.setAttribute("role", "button");
+          claimHeader.setAttribute("tabindex", "0");
+          claimHeader.setAttribute("aria-expanded", "true");
 
-                const claimText = document.createElement("div");
-                claimText.className = "claim-text";
-                claimText.textContent = claim.claim_text;
+          const claimText = document.createElement("div");
+          claimText.className = "claim-text";
+          claimText.textContent = claim.claim_text;
 
-                const toggleBtn = document.createElement("button");
-                toggleBtn.className = "toggle-btn";
-                toggleBtn.textContent = "▼";
+          const toggleBtn = document.createElement("button");
+          toggleBtn.className = "toggle-btn";
+          toggleBtn.setAttribute("aria-label", "Toggle claim details");
+          toggleBtn.textContent = "▼";
 
-                claimHeader.appendChild(claimText);
-                claimHeader.appendChild(toggleBtn);
+          claimHeader.appendChild(claimText);
+          claimHeader.appendChild(toggleBtn);
 
-                const claimDetails = document.createElement("div");
-                claimDetails.className = "claim-details";
+          const claimDetails = document.createElement("div");
+          claimDetails.className = "claim-details";
 
-                // Assessment badge
-                const assessClass = claim.truth_profile.overall_assessment.toLowerCase().includes("accurate") ? "high" :
-                                   claim.truth_profile.overall_assessment.toLowerCase().includes("misleading") ? "low" : "medium";
-                const badge = document.createElement("div");
-                badge.className = `assessment-badge ${assessClass}`;
-                badge.textContent = claim.truth_profile.overall_assessment;
-                claimDetails.appendChild(badge);
+          // Assessment badge
+          const assessClass = claim.truth_profile.overall_assessment
+            .toLowerCase()
+            .includes("accurate")
+            ? "high"
+            : claim.truth_profile.overall_assessment
+                  .toLowerCase()
+                  .includes("misleading")
+              ? "low"
+              : "medium";
+          const badge = document.createElement("div");
+          badge.className = `assessment-badge ${assessClass}`;
+          badge.textContent = claim.truth_profile.overall_assessment;
+          claimDetails.appendChild(badge);
 
-                // Perspectives
-                const pTitle = document.createElement("div");
-                pTitle.className = "section-title";
-                pTitle.textContent = "Perspectives";
-                claimDetails.appendChild(pTitle);
+          // Perspectives
+          const pTitle = document.createElement("div");
+          pTitle.className = "section-title";
+          pTitle.textContent = "Perspectives";
+          claimDetails.appendChild(pTitle);
 
-                const pGrid = document.createElement("div");
-                pGrid.className = "perspectives-grid";
+          const pGrid = document.createElement("div");
+          pGrid.className = "perspectives-grid";
 
-                Object.entries(claim.truth_profile.perspectives).forEach(([key, val]) => {
-                    const row = document.createElement("div");
-                    row.className = "perspective-row";
+          Object.entries(claim.truth_profile.perspectives).forEach(
+            ([key, val]) => {
+              const row = document.createElement("div");
+              row.className = "perspective-row";
 
-                    const label = key.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-                    const nameSpan = document.createElement("span");
-                    nameSpan.className = "perspective-name";
-                    nameSpan.textContent = label;
+              const label = key
+                .split("_")
+                .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                .join(" ");
+              const nameSpan = document.createElement("span");
+              nameSpan.className = "perspective-name";
+              nameSpan.textContent = label;
 
-                    const confidenceContainer = document.createElement("div");
-                    confidenceContainer.className = "confidence-container";
+              const confidenceContainer = document.createElement("div");
+              confidenceContainer.className = "confidence-container";
 
-                    const confidenceBar = document.createElement("div");
-                    confidenceBar.className = "confidence-bar";
-                    const barFill = document.createElement("div");
-                    barFill.className = "confidence-fill";
-                    barFill.style.width = `${val.confidence * 100}%`;
-                    confidenceBar.appendChild(barFill);
+              const confidenceBar = document.createElement("div");
+              confidenceBar.className = "confidence-bar";
+              const barFill = document.createElement("div");
+              barFill.className = "confidence-fill";
+              barFill.style.width = `${val.confidence * 100}%`;
+              confidenceBar.appendChild(barFill);
 
-                    const percentText = document.createElement("span");
-                    percentText.className = "confidence-text";
-                    percentText.textContent = `${Math.round(val.confidence * 100)}%`;
+              const percentText = document.createElement("span");
+              percentText.className = "confidence-text";
+              percentText.textContent = `${Math.round(val.confidence * 100)}%`;
 
-                    confidenceContainer.appendChild(confidenceBar);
-                    confidenceContainer.appendChild(percentText);
+              confidenceContainer.appendChild(confidenceBar);
+              confidenceContainer.appendChild(percentText);
 
-                    row.appendChild(nameSpan);
-                    row.appendChild(confidenceContainer);
-                    pGrid.appendChild(row);
-                });
+              row.appendChild(nameSpan);
+              row.appendChild(confidenceContainer);
+              pGrid.appendChild(row);
+            },
+          );
 
-                claimDetails.appendChild(pGrid);
+          claimDetails.appendChild(pGrid);
 
-                // Bias indicators
-                const bias = claim.truth_profile.bias_indicators;
-                if (bias.logical_fallacies.length > 0 || bias.emotional_manipulation.length > 0) {
-                    const bTitle = document.createElement("div");
-                    bTitle.className = "section-title";
-                    bTitle.textContent = "Bias Indicators";
-                    claimDetails.appendChild(bTitle);
+          // Bias indicators
+          const bias = claim.truth_profile.bias_indicators;
+          if (
+            bias.logical_fallacies.length > 0 ||
+            bias.emotional_manipulation.length > 0
+          ) {
+            const bTitle = document.createElement("div");
+            bTitle.className = "section-title";
+            bTitle.textContent = "Bias Indicators";
+            claimDetails.appendChild(bTitle);
 
-                    const bTags = document.createElement("div");
-                    bTags.className = "bias-tags";
-                    [...bias.logical_fallacies, ...bias.emotional_manipulation].forEach(ind => {
-                        const tag = document.createElement("span");
-                        tag.className = "bias-tag";
-                        tag.textContent = ind;
-                        bTags.appendChild(tag);
-                    });
-                    claimDetails.appendChild(bTags);
-                }
+            const bTags = document.createElement("div");
+            bTags.className = "bias-tags";
+            [...bias.logical_fallacies, ...bias.emotional_manipulation].forEach(
+              (ind) => {
+                const tag = document.createElement("span");
+                tag.className = "bias-tag";
+                tag.textContent = ind;
+                bTags.appendChild(tag);
+              },
+            );
+            claimDetails.appendChild(bTags);
+          }
 
-                // Deception score
-                const dDiv = document.createElement("div");
-                dDiv.className = "deception-score";
-                const label = document.createElement("span");
-                label.className = "deception-label";
-                label.textContent = "Deception Risk:";
-                const scoreBar = document.createElement("div");
-                scoreBar.className = "score-bar";
-                const scoreFill = document.createElement("div");
-                scoreFill.className = "score-fill";
-                scoreFill.style.width = `${bias.deception_score * 10}%`;
-                scoreBar.appendChild(scoreFill);
-                const scoreText = document.createElement("span");
-                scoreText.className = "score-text";
-                scoreText.textContent = `${bias.deception_score}/10`;
-                dDiv.appendChild(label);
-                dDiv.appendChild(scoreBar);
-                dDiv.appendChild(scoreText);
-                claimDetails.appendChild(dDiv);
+          // Deception score
+          const dDiv = document.createElement("div");
+          dDiv.className = "deception-score";
+          const label = document.createElement("span");
+          label.className = "deception-label";
+          label.textContent = "Deception Risk:";
+          const scoreBar = document.createElement("div");
+          scoreBar.className = "score-bar";
+          const scoreFill = document.createElement("div");
+          scoreFill.className = "score-fill";
+          scoreFill.style.width = `${bias.deception_score * 10}%`;
+          scoreBar.appendChild(scoreFill);
+          const scoreText = document.createElement("span");
+          scoreText.className = "score-text";
+          scoreText.textContent = `${bias.deception_score}/10`;
+          dDiv.appendChild(label);
+          dDiv.appendChild(scoreBar);
+          dDiv.appendChild(scoreText);
+          claimDetails.appendChild(dDiv);
 
-                card.appendChild(claimHeader);
-                card.appendChild(claimDetails);
+          card.appendChild(claimHeader);
+          card.appendChild(claimDetails);
 
-                // Toggle functionality
-                claimHeader.onclick = () => {
-                    const isExpanded = claimHeader.getAttribute("aria-expanded") === "true";
-                    claimHeader.setAttribute("aria-expanded", !isExpanded);
-                    claimDetails.classList.toggle("collapsed");
-                    toggleBtn.textContent = isExpanded ? "▶" : "▼";
-                };
+          // Toggle functionality
+          const toggleClaim = () => {
+            const isExpanded =
+              claimHeader.getAttribute("aria-expanded") === "true";
+            claimHeader.setAttribute("aria-expanded", !isExpanded);
+            claimDetails.classList.toggle("collapsed");
+            toggleBtn.textContent = isExpanded ? "▶" : "▼";
+          };
 
-                content.appendChild(card);
-            });
+          claimHeader.onclick = toggleClaim;
 
-            container.appendChild(header);
-            container.appendChild(content);
+          claimHeader.onkeydown = (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              toggleClaim();
+            }
+          };
 
-            createPanel(container, isDarkMode);
-        }
+          content.appendChild(card);
+        });
 
-        function showLoadingPanel() {
-            const isDarkMode = document.documentElement.hasAttribute('dark');
-            const container = document.createElement("div");
-            container.innerHTML = `
+        container.appendChild(header);
+        container.appendChild(content);
+
+        createPanel(container, isDarkMode);
+      }
+
+      function showLoadingPanel() {
+        const isDarkMode = document.documentElement.hasAttribute("dark");
+        const container = document.createElement("div");
+        container.innerHTML = `
                 <div class="loading-container">
                     <div class="spinner"></div>
                     <div class="message">Analyzing video...</div>
@@ -332,13 +382,13 @@
                     <button class="cancel-btn visible">Cancel</button>
                 </div>
             `;
-            createPanel(container, isDarkMode);
-        }
+        createPanel(container, isDarkMode);
+      }
 
-        function showErrorPanel() {
-            const isDarkMode = document.documentElement.hasAttribute('dark');
-            const container = document.createElement("div");
-            container.innerHTML = `
+      function showErrorPanel() {
+        const isDarkMode = document.documentElement.hasAttribute("dark");
+        const container = document.createElement("div");
+        container.innerHTML = `
                 <div class="error-container">
                     <div class="error-icon">⚠️</div>
                     <div class="error-title">Analysis Failed</div>
@@ -348,85 +398,72 @@
                         <button class="btn close-btn-action" onclick="removePanel()">Close</button>
                     </div>
                 </div>
-            `;
-            createPanel(container, isDarkMode);
-        }
-
-        function showEmptyPanel() {
-            const isDarkMode = document.documentElement.hasAttribute('dark');
-            const container = document.createElement("div");
-
-            const header = document.createElement("div");
-            header.className = "header";
-            header.innerHTML = `
-                <div class="title">
-                    <span class="title-icon">🔍</span> Perspective Prism
-                    <span class="badge badge-fresh">Fresh</span>
-                </div>
-                <div class="header-actions">
-                    <button class="close-btn" aria-label="Close panel" onclick="removePanel()">×</button>
-                </div>
-            `;
-
-            const content = document.createElement("div");
-            content.className = "content";
-            content.innerHTML = `
-                <div class="empty-state">
-                    <p>No claims extracted from this video.</p>
-                </div>
-            `;
-
-            container.appendChild(header);
-            container.appendChild(content);
-
-            createPanel(container, isDarkMode);
-        }
-
-        function removePanel() {
-            if (currentPanel) {
-                currentPanel.remove();
-                currentPanel = null;
-            }
-        }
-
         function toggleDarkMode() {
             const isDark = document.getElementById('darkModeToggle').checked;
             if (isDark) {
                 document.documentElement.setAttribute('dark', '');
+                if (currentPanel) currentPanel.classList.add('dark-mode');
             } else {
                 document.documentElement.removeAttribute('dark');
-            }
-            
-            // Refresh current panel if exists
-            if (currentPanel) {
-                const panelId = currentPanel.id;
-                // Determine which panel was showing and recreate it
-                const shadow = currentPanel.shadowRoot;
-                if (shadow.querySelector('.loading-container')) {
-                    showLoadingPanel();
-                } else if (shadow.querySelector('.error-container')) {
-                    showErrorPanel();
-                } else if (shadow.querySelector('.empty-state')) {
-                    showEmptyPanel();
-                } else {
-                    showResultsPanel();
-                }
+                if (currentPanel) currentPanel.classList.remove('dark-mode');
             }
         }
+                    <p>No claims extracted from this video.</p>
+                </div>
+            `;
 
-        function toggleResponsive() {
-            const isResponsive = document.getElementById('responsiveToggle').checked;
-            if (isResponsive) {
-                document.body.style.maxWidth = '480px';
-            } else {
-                document.body.style.maxWidth = '';
-            }
+        container.appendChild(header);
+        container.appendChild(content);
+
+        createPanel(container, isDarkMode);
+      }
+
+      function removePanel() {
+        if (currentPanel) {
+          currentPanel.remove();
+          currentPanel = null;
+        }
+      }
+
+      function toggleDarkMode() {
+        const isDark = document.getElementById("darkModeToggle").checked;
+        if (isDark) {
+          document.documentElement.setAttribute("dark", "");
+        } else {
+          document.documentElement.removeAttribute("dark");
         }
 
-        // Show results panel by default
-        window.addEventListener('load', () => {
+        // Refresh current panel if exists
+        if (currentPanel) {
+          const panelId = currentPanel.id;
+          // Determine which panel was showing and recreate it
+          const shadow = currentPanel.shadowRoot;
+          if (shadow.querySelector(".loading-container")) {
+            showLoadingPanel();
+          } else if (shadow.querySelector(".error-container")) {
+            showErrorPanel();
+          } else if (shadow.querySelector(".empty-state")) {
+            showEmptyPanel();
+          } else {
             showResultsPanel();
-        });
+          }
+        }
+      }
+
+      function toggleResponsive() {
+        const isResponsive =
+          document.getElementById("responsiveToggle").checked;
+        if (isResponsive) {
+          document.body.style.maxWidth = "480px";
+        } else {
+          document.body.style.maxWidth = "";
+        }
+      }
+
+      // Show results panel by default
+      window.addEventListener("load", () => {
+        showResultsPanel();
+      });
     </script>
-</body>
+  </body>
 </html>

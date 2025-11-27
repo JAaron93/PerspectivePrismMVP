@@ -5,48 +5,49 @@
    ============================================ */
 
 .pp-ext-button {
-    /* Layout */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    
-    /* Sizing */
-    height: 36px;
-    padding: 0 16px;
-    min-width: 140px;
-    
-    /* Spacing */
-    margin-left: 8px;
-    
-    /* Typography */
-    font-size: 14px;
-    font-weight: 500;
-    font-family: Roboto, Arial, sans-serif;
-    line-height: 1;
-    white-space: nowrap;
-    
-    /* Colors - Light Mode (Default/Idle State) */
-    background-color: #f1f1f1;
-    color: #0f0f0f;
-    
-    /* Border */
-    border: none;
-    border-radius: 18px;
-    
-    /* Interaction */
-    cursor: pointer;
-    user-select: none;
-    -webkit-user-select: none;
-    
-    /* Transitions */
-    transition: background-color 0.2s ease, 
-                color 0.2s ease, 
-                transform 0.1s ease,
-                box-shadow 0.2s ease;
-    
-    /* Positioning */
-    position: relative;
-    z-index: 100; /* Ensure button appears above YouTube elements */
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Sizing */
+  height: 36px;
+  padding: 0 16px;
+  min-width: 140px;
+
+  /* Spacing */
+  margin-left: 8px;
+
+  /* Typography */
+  font-size: 14px;
+  font-weight: 500;
+  font-family: Roboto, Arial, sans-serif;
+  line-height: 1;
+  white-space: nowrap;
+
+  /* Colors - Light Mode (Default/Idle State) */
+  background-color: #f1f1f1;
+  color: #0f0f0f;
+
+  /* Border */
+  border: none;
+  border-radius: 18px;
+
+  /* Interaction */
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+
+  /* Transitions */
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.1s ease,
+    box-shadow 0.2s ease;
+
+  /* Positioning */
+  position: relative;
+  z-index: 20; /* Reduced from 100 to avoid overlay conflicts */
 }
 
 /* ============================================
@@ -54,11 +55,11 @@
    ============================================ */
 
 .pp-ext-button:hover:not(:disabled) {
-    background-color: #d9d9d9;
+  background-color: #d9d9d9;
 }
 
 .pp-ext-button:active:not(:disabled) {
-    transform: scale(0.98);
+  transform: scale(0.98);
 }
 
 /* ============================================
@@ -66,8 +67,8 @@
    ============================================ */
 
 .pp-ext-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* ============================================
@@ -75,8 +76,8 @@
    ============================================ */
 
 .pp-ext-button:focus-visible {
-    outline: 2px solid #065fd4;
-    outline-offset: 2px;
+  outline: 2px solid #0551b4; /* Darkened for better contrast */
+  outline-offset: 2px;
 }
 
 /* ============================================
@@ -84,16 +85,16 @@
    ============================================ */
 
 .pp-ext-button.pp-state-success {
-    background-color: #e6f4ea;
-    color: #137333;
+  background-color: #e6f4ea;
+  color: #0b572b; /* Darkened for WCAG AA compliance */
 }
 
 .pp-ext-button.pp-state-success:hover:not(:disabled) {
-    background-color: #ceead6;
+  background-color: #ceead6;
 }
 
 .pp-ext-button.pp-state-success:focus-visible {
-    outline-color: #137333;
+  outline-color: #0b572b;
 }
 
 /* ============================================
@@ -101,16 +102,16 @@
    ============================================ */
 
 .pp-ext-button.pp-state-error {
-    background-color: #fce8e6;
-    color: #c5221f;
+  background-color: #fce8e6;
+  color: #a50e0e; /* Darkened for WCAG AA compliance */
 }
 
 .pp-ext-button.pp-state-error:hover:not(:disabled) {
-    background-color: #fad2cf;
+  background-color: #fad2cf;
 }
 
 .pp-ext-button.pp-state-error:focus-visible {
-    outline-color: #c5221f;
+  outline-color: #a50e0e;
 }
 
 /* ============================================
@@ -118,11 +119,11 @@
    ============================================ */
 
 .pp-icon {
-    margin-right: 6px;
-    font-size: 16px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+  margin-right: 6px;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ============================================
@@ -130,16 +131,16 @@
    ============================================ */
 
 @keyframes pp-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .pp-ext-button[aria-busy="true"] .pp-icon {
-    animation: pp-spin 1s linear infinite;
+  animation: pp-spin 1s linear infinite;
 }
 
 /* ============================================
@@ -148,44 +149,44 @@
 
 /* Dark Mode - Default/Idle State */
 html[dark] .pp-ext-button {
-    background-color: #272727;
-    color: #f1f1f1;
+  background-color: #272727;
+  color: #f1f1f1;
 }
 
 html[dark] .pp-ext-button:hover:not(:disabled) {
-    background-color: #3f3f3f;
+  background-color: #3f3f3f;
 }
 
 html[dark] .pp-ext-button:focus-visible {
-    outline-color: #aecbfa;
+  outline-color: #aecbfa;
 }
 
 /* Dark Mode - Success State */
 html[dark] .pp-ext-button.pp-state-success {
-    background-color: #0d5224;
-    color: #81c995;
+  background-color: #0d5224;
+  color: #81c995;
 }
 
 html[dark] .pp-ext-button.pp-state-success:hover:not(:disabled) {
-    background-color: #0a3f1c;
+  background-color: #0a3f1c;
 }
 
 html[dark] .pp-ext-button.pp-state-success:focus-visible {
-    outline-color: #81c995;
+  outline-color: #81c995;
 }
 
 /* Dark Mode - Error State */
 html[dark] .pp-ext-button.pp-state-error {
-    background-color: #8c1816;
-    color: #f28b82;
+  background-color: #8c1816;
+  color: #f6aea9; /* Lightened for WCAG AA compliance */
 }
 
 html[dark] .pp-ext-button.pp-state-error:hover:not(:disabled) {
-    background-color: #6e1311;
+  background-color: #6e1311;
 }
 
 html[dark] .pp-ext-button.pp-state-error:focus-visible {
-    outline-color: #f28b82;
+  outline-color: #f6aea9;
 }
 
 /* ============================================
@@ -194,16 +195,16 @@ html[dark] .pp-ext-button.pp-state-error:focus-visible {
 
 /* Smaller screens - reduce padding slightly */
 @media (max-width: 768px) {
-    .pp-ext-button {
-        padding: 0 12px;
-        min-width: 120px;
-        font-size: 13px;
-    }
-    
-    .pp-icon {
-        font-size: 14px;
-        margin-right: 4px;
-    }
+  .pp-ext-button {
+    padding: 0 12px;
+    min-width: 120px;
+    font-size: 13px;
+  }
+
+  .pp-icon {
+    font-size: 14px;
+    margin-right: 4px;
+  }
 }
 
 /* ============================================
@@ -211,13 +212,13 @@ html[dark] .pp-ext-button.pp-state-error:focus-visible {
    ============================================ */
 
 @media (prefers-contrast: high) {
-    .pp-ext-button {
-        border: 2px solid currentColor;
-    }
-    
-    .pp-ext-button:focus-visible {
-        outline-width: 3px;
-    }
+  .pp-ext-button {
+    border: 2px solid currentColor;
+  }
+
+  .pp-ext-button:focus-visible {
+    outline-width: 3px;
+  }
 }
 
 /* ============================================
@@ -225,15 +226,15 @@ html[dark] .pp-ext-button.pp-state-error:focus-visible {
    ============================================ */
 
 @media (prefers-reduced-motion: reduce) {
-    .pp-ext-button {
-        transition: none;
-    }
-    
-    .pp-ext-button:active:not(:disabled) {
-        transform: none;
-    }
-    
-    .pp-ext-button[aria-busy="true"] .pp-icon {
-        animation: none;
-    }
+  .pp-ext-button {
+    transition: none;
+  }
+
+  .pp-ext-button:active:not(:disabled) {
+    transform: none;
+  }
+
+  .pp-ext-button[aria-busy="true"] .pp-icon {
+    animation: none;
+  }
 }
