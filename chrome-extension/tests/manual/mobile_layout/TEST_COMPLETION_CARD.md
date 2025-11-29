@@ -57,8 +57,8 @@
 
 ## Test Results Summary
 
-**Total Checks**: 30
-**Completed**: 0 / 30
+**Total Checks**: 32
+**Completed**: 0 / 32
 **Passed**: 0
 **Failed**: 0
 **Blocked**: 0

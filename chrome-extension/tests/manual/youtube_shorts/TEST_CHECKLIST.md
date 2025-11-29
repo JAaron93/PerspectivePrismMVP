@@ -24,7 +24,7 @@ This is a condensed checklist for testing YouTube Shorts support. See README.md 
   - [ ] Button appears in Shorts interface
   - [ ] Button visible and properly positioned
   - [ ] Button doesn't overlap video content
-  - [ ] Selector used: ________________
+  - [ ] Selector used: **\*\***\_\_\_\_**\*\***
 
 - [ ] **Button States**
   - [ ] Idle state displays correctly
@@ -36,7 +36,7 @@ This is a condensed checklist for testing YouTube Shorts support. See README.md 
   - [ ] Panel appears on right side
   - [ ] Panel doesn't overlap vertical video
   - [ ] Panel is scrollable
-  - [ ] Panel has proper z-index
+  - [ ] Panel has sufficient z-index (≥10000) to overlay video content (must overlay video player and any page overlays)
   - [ ] Close button works
 
 - [ ] **Navigation**
@@ -134,22 +134,26 @@ This is a condensed checklist for testing YouTube Shorts support. See README.md 
 
 ## Test Results
 
-**Date**: _______________  
-**Tester**: _______________  
-**Extension Version**: 1.0.0  
-**Backend Version**: _______________
+**Date**: ******\_\_\_******
+**Tester**: ******\_\_\_******
+**Extension Version**: 1.0.0
+**Backend Version**: ******\_\_\_******
 
 **Overall Status**: ⬜ Pass / ⬜ Fail / ⬜ Partial
 
 **Issues Found**:
-1. _______________________________________________
-2. _______________________________________________
-3. _______________________________________________
+
+1. ***
+2. ***
+3. ***
 
 **Notes**:
-_______________________________________________
-_______________________________________________
-_______________________________________________
+
+---
+
+---
+
+---
 
 ## Sign-off
 
@@ -157,5 +161,5 @@ _______________________________________________
 - [ ] Issues documented
 - [ ] Ready for production
 
-**Approved by**: _______________  
-**Date**: _______________
+**Approved by**: ******\_\_\_******
+**Date**: ******\_\_\_******
