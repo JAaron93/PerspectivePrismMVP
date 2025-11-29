@@ -398,7 +398,7 @@ _______________________________________________
 - **Backend URL**: _____
 
 ### Test Data
-- **Primary Video**: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+- **Primary Video**: https://www.youtube.com/watch?v=<actual-test-video-id>
 - **Additional Videos**: _______________
 
 ---
