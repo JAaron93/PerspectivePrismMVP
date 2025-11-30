@@ -147,10 +147,37 @@ Test on different YouTube layouts:
 
 ## Performance Testing
 
-- [ ] Extension memory usage (<10MB)
-- [ ] Page load impact (<100ms)
+### Quick Checklist
+
+- [ ] Extension memory usage (<10MB) - See `MEMORY_PROFILING.md`
+- [x] Page load impact (<100ms) - See `PAGE_LOAD_PERFORMANCE_TESTING.md`
 - [ ] Analysis response time (<5s for cached)
 - [ ] Cache size monitoring
+
+### Page Load Performance Testing
+
+**Objective**: Verify that the extension adds less than 100ms to YouTube page load time (Requirement 8.2).
+
+**Quick Test**:
+1. Open `test-page-load-performance.html` in Chrome
+2. Follow the on-screen instructions for automated or manual testing
+3. Compare page load times with and without the extension enabled
+
+**Detailed Guide**: See `PAGE_LOAD_PERFORMANCE_TESTING.md` for comprehensive testing procedures, including:
+- Chrome DevTools Performance Profiler method (recommended)
+- Navigation Timing API automated measurements
+- Lighthouse Performance Audit
+- Expected results and pass/fail criteria
+- Optimization recommendations
+
+**Expected Result**: Extension overhead < 100ms on both DOMContentLoaded and Load events.
+
+**Current Optimizations**:
+- Content script runs at `document_idle` (after page load)
+- All operations are async and non-blocking
+- Lazy initialization of UI components
+- Debounced MutationObserver (500ms)
+- Minimal initial execution footprint
 
 ## Reporting Issues
 

@@ -93,8 +93,7 @@ class MemoryMonitor {
         // Content script context
         // Count only extension-related DOM nodes to avoid expensive query
         measurement.domNodes = document.querySelectorAll('[id^="pp-"], [class*="pp-"]').length;
-        measurement.shadowRoots =
-          document.querySelectorAll('[id^="pp-"]').length;
+        measurement.elementsWithPPId = document.querySelectorAll('[id^="pp-"]').length;
         measurement.context = "content_script";
       } else {
         // Background service worker context
