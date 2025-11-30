@@ -86,7 +86,7 @@ Use these test videos for consistent results:
 - ✓ New button appears for Video C
 - ✓ No duplicate buttons
 - ✓ No duplicate panels
-- ✓ Panel state for Video C: Either auto-opens (panel persistence feature) OR remains closed — verify which outcome occurs and confirm no errors in either case
+- ✓ Panel state for Video C: [INSERT EXPECTED BEHAVIOR: e.g., "Remains closed" OR "Auto-opens if panel persistence is enabled"]
 - ✓ No console errors
 
 **Pass Criteria**:
@@ -521,8 +521,8 @@ If any test fails, check:
 
 ## Sign-off
 
-**Tester**: ****\*\*\*\*****\_\_\_****\*\*\*\*****  
-**Date**: ****\*\*\*\*****\_\_\_****\*\*\*\*****  
+**Tester**: \***\*\*\*\*\*\*\***\_\_\_\***\*\*\*\*\*\*\***  
+**Date**: \***\*\*\*\*\*\*\***\_\_\_\***\*\*\*\*\*\*\***  
 **Status**: ⬜ PASS / ⬜ FAIL / ⬜ BLOCKED
 
 **Notes**:

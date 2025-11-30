@@ -475,30 +475,42 @@
           <div class="step-number">Step 1:</div>
           <div>Open Chrome DevTools (F12) → Network tab</div>
         </div>
-        <div class="error-examples">
-            <div class="error-example">
-                <strong>Connection Failure:</strong><br>
-                "Cannot connect to Perspective Prism. Check your backend URL in settings."
-            </div>
-            
-            <div class="error-example">
-                <strong>Timeout:</strong><br>
-                "The analysis took too long. Please try again later."
-            </div>
-            
-            <div class="error-example">
-                <strong>Server Error (5xx):</strong><br>
-                "Our servers are experiencing issues. Please try again later."
-            </div>
+
+        <div class="test-step">
+          <div class="step-number">Step 2:</div>
+          <div>
+            Enable network throttling: Select "Slow 3G" or create a custom
+            profile with very slow speeds (or use "Offline" to simulate hanging
+            connection)
+          </div>
         </div>
+
+        <div class="test-step">
+          <div class="step-number">Step 3:</div>
+          <div>
+            Click "Analyze Video" button and observe loading state. Wait for up
+            to 120 seconds (the timeout period)
+          </div>
+        </div>
+
+        <div class="test-step">
+          <div class="step-number">Step 4:</div>
+          <div>
+            After timeout, verify error message and extension responsiveness
+          </div>
+        </div>
+
+        <div class="expected-result">
+          <strong>Expected Result:</strong>
           <ul>
-            <li>Loading state should persist</li>
+            <li>Loading state should persist during the timeout period</li>
             <li>After 120 seconds (timeout), error should appear</li>
             <li>
-              Error message:
-              <code>"The analysis took too long. Please try again later."</code>
+              Error message should match timeout error (see "Error Message
+              Verification" section below)
             </li>
             <li>Extension should not hang or become unresponsive</li>
+            <li>Retry button should be available</li>
           </ul>
         </div>
 
@@ -662,15 +674,20 @@ ${document.getElementById("notes").value || "No notes provided"}
       window.addEventListener("load", () => {
         const saved = localStorage.getItem("backend-offline-test-results");
         if (saved) {
-          const results = JSON.parse(saved);
-          document.getElementById("notes").value = results.notes || "";
+          try {
+            const results = JSON.parse(saved);
+            document.getElementById("notes").value = results.notes || "";
 
-          Object.entries(results.checklist).forEach(([id, checked]) => {
-            const checkbox = document.getElementById(id);
-            if (checkbox) {
-              checkbox.checked = checked;
-            }
-          });
+            Object.entries(results.checklist).forEach(([id, checked]) => {
+              const checkbox = document.getElementById(id);
+              if (checkbox) {
+                checkbox.checked = checked;
+              }
+            });
+          } catch (error) {
+            console.error("Failed to restore test results:", error);
+            localStorage.removeItem("backend-offline-test-results");
+          }
         }
       });
     </script>

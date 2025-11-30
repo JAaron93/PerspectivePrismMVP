@@ -17,21 +17,25 @@ This test suite verifies that the YouTube Chrome Extension handles backend conne
 ## Files in This Directory
 
 ### 📄 TEST_PLAN.md
+
 Comprehensive test plan with detailed scenarios, steps, and expected results. Use this as your primary testing guide.
 
 **When to use**: Before starting manual testing to understand all scenarios.
 
 ### 📄 TEST_RESULTS_TEMPLATE.md
+
 Template for documenting test execution results. Copy this file and fill it out during testing.
 
 **When to use**: During and after test execution to record results.
 
 ### 📄 README.md (this file)
+
 Overview and quick reference guide for the test suite.
 
 ## Quick Start
 
 ### Prerequisites
+
 1. Extension installed and loaded in Chrome
 2. Backend URL configured in settings
 3. Access to start/stop backend server
@@ -40,19 +44,23 @@ Overview and quick reference guide for the test suite.
 ### Running the Tests
 
 #### Option 1: Interactive HTML Test Page
+
 ```bash
 # Open in Chrome
 open chrome-extension/test-backend-offline.html
 ```
+
 Follow the step-by-step instructions in the interactive test page.
 
 #### Option 2: Manual Testing with Test Plan
+
 1. Open `TEST_PLAN.md`
 2. Follow each scenario in order
 3. Copy `TEST_RESULTS_TEMPLATE.md` to `TEST_RESULTS_[DATE].md`
 4. Document your findings in the results file
 
 #### Option 3: Quick Smoke Test
+
 ```bash
 # 1. Stop backend
 pkill -f uvicorn
@@ -75,49 +83,53 @@ cd backend && uvicorn app.main:app --reload
 
 ## Test Scenarios Summary
 
-| # | Scenario | Priority | Duration |
-|---|----------|----------|----------|
-| 1 | Backend Offline Before Analysis | High | ~30s |
-| 2 | Backend Goes Offline During Analysis | High | ~30s |
-| 3 | Recovery After Backend Comes Online | High | ~45s |
-| 4 | Invalid Backend URL Configuration | Medium | ~60s |
-| 5 | Network Timeout Simulation | Medium | ~120s |
-| 6 | Multiple Retry Attempts | Medium | ~90s |
-| 7 | Settings Link Functionality | Low | ~45s |
+| #   | Scenario                             | Priority | Duration |
+| --- | ------------------------------------ | -------- | -------- |
+| 1   | Backend Offline Before Analysis      | High     | ~30s     |
+| 2   | Backend Goes Offline During Analysis | High     | ~30s     |
+| 3   | Recovery After Backend Comes Online  | High     | ~45s     |
+| 4   | Invalid Backend URL Configuration    | Medium   | ~60s     |
+| 5   | Network Timeout Simulation           | Medium   | ~120s    |
+| 6   | Multiple Retry Attempts              | Medium   | ~90s     |
+| 7   | Settings Link Functionality          | Low      | ~45s     |
 
 **Total Estimated Time**: ~7-10 minutes
 
 ## Expected Error Messages
 
-| Scenario | Error Message |
-|----------|---------------|
-| Connection Failure | "Cannot connect to Perspective Prism. Check your backend URL in settings." |
-| Timeout (120s) | "The analysis took too long. Please try again later." |
-| Server Error (5xx) | "Our servers are experiencing issues. Please try again later." |
-| Too Many Requests (429) | "Too many requests. Please wait a moment and try again." |
-| Invalid Data | "The analysis data received was invalid. Please try again." |
+| Scenario                | Error Message                                                              |
+| ----------------------- | -------------------------------------------------------------------------- |
+| Connection Failure      | "Cannot connect to Perspective Prism. Check your backend URL in settings." |
+| Timeout (120s)          | "The analysis took too long. Please try again later."                      |
+| Server Error (5xx)      | "Our servers are experiencing issues. Please try again later."             |
+| Too Many Requests (429) | "Too many requests. Please wait a moment and try again."                   |
+| Invalid Data            | "The analysis data received was invalid. Please try again."                |
 
 ## Common Issues and Solutions
 
 ### Issue: Backend won't stop
+
 ```bash
 ps aux | grep uvicorn
 kill -9 <PID>
 ```
 
 ### Issue: Extension not responding
+
 1. Go to `chrome://extensions/`
 2. Find "Perspective Prism"
 3. Click "Reload"
 4. Refresh YouTube page
 
 ### Issue: Error message not appearing
+
 1. Check console for JavaScript errors
 2. Verify backend URL is configured
 3. Check network tab in DevTools
 4. Ensure extension has proper permissions
 
 ### Issue: Can't reproduce timeout
+
 1. Use Chrome DevTools Network throttling
 2. Set to "Offline" or custom slow profile
 3. Or use a proxy tool to simulate slow network
@@ -142,6 +154,7 @@ All tests must pass these criteria:
 ## Related Requirements
 
 This test suite validates:
+
 - **Requirement 6.1**: Backend unreachable error handling
 - **Requirement 6.4**: Error logging (sanitized, no sensitive data)
 - **Requirement 6.5**: Retry functionality
@@ -159,8 +172,8 @@ See: `.kiro/specs/youtube-chrome-extension/design.md`
 
 ## Test History
 
-| Date | Tester | Result | Notes |
-|------|--------|--------|-------|
+| Date   | Tester | Result      | Notes                  |
+| ------ | ------ | ----------- | ---------------------- |
 | [Date] | [Name] | [Pass/Fail] | [Link to results file] |
 
 ## Reporting Issues
@@ -191,15 +204,19 @@ When reporting issues found during testing:
 ## Additional Resources
 
 ### Interactive Test Page
+
 `chrome-extension/test-backend-offline.html` - Step-by-step interactive testing
 
 ### Manual Testing Guide
+
 `chrome-extension/MANUAL_TESTING_GUIDE.md` - Complete manual testing documentation
 
 ### Integration Tests
+
 `chrome-extension/tests/integration/error-handling.spec.js` - Automated error handling tests
 
 ### Design Document
+
 `.kiro/specs/youtube-chrome-extension/design.md` - Technical design and error handling specifications
 
 ## Contributing
@@ -221,6 +238,6 @@ To improve this test suite:
 
 ---
 
-**Last Updated**: [Current Date]  
+**Last Updated**: 11-30-2025
 **Test Suite Version**: 1.0  
 **Maintained By**: Development Team

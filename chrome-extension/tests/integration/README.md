@@ -29,19 +29,34 @@ Integration tests verify end-to-end functionality of the extension in a real bro
 ### Prerequisites
 
 1. Install dependencies:
+
    ```bash
    npm install
    ```
 
 2. Install Playwright browsers:
+
    ```bash
    npx playwright install chromium
    ```
 
 3. Ensure backend is running (for tests that require it):
+
+   **macOS/Linux:**
+
    ```bash
    cd ../backend
+   python -m venv venv  # Create venv if not exists
    source venv/bin/activate
+   uvicorn app.main:app --reload
+   ```
+
+   **Windows:**
+
+   ```cmd
+   cd ..\backend
+   python -m venv venv  # Create venv if not exists
+   venv\Scripts\activate
    uvicorn app.main:app --reload
    ```
 
@@ -219,4 +234,3 @@ npx playwright install chromium
 - [Playwright Documentation](https://playwright.dev/)
 - [Chrome Extension Testing Guide](https://developer.chrome.com/docs/extensions/mv3/testing/)
 - [Manual Testing Guide](../manual_qa/desktop_standard_layout/MANUAL_TESTING_GUIDE.md)
-

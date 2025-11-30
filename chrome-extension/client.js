@@ -229,18 +229,23 @@ class PerspectivePrismClient {
   cancelAnalysis(videoId) {
     const controller = this.abortControllers.get(videoId);
     if (controller) {
-      console.log(`[PerspectivePrismClient] Cancelling analysis for ${videoId}`);
+      console.log(
+        `[PerspectivePrismClient] Cancelling analysis for ${videoId}`,
+      );
       controller.abort();
       this.abortControllers.delete(videoId);
-      
+
       // Clean up pending request
       this.pendingRequests.delete(videoId);
-      
+
       // Clean up persisted state
-      this.cleanupPersistedRequest(videoId).catch(err => 
-        console.error(`[PerspectivePrismClient] Failed to cleanup after cancel:`, err)
+      this.cleanupPersistedRequest(videoId).catch((err) =>
+        console.error(
+          `[PerspectivePrismClient] Failed to cleanup after cancel:`,
+          err,
+        ),
       );
-      
+
       // Notify any waiting resolvers
       const resolvers = this.pendingResolvers.get(videoId);
       if (resolvers) {
@@ -248,13 +253,13 @@ class PerspectivePrismClient {
           clearTimeout(timeoutId);
           resolve({
             success: false,
-            error: 'Analysis cancelled by user',
-            cancelled: true
+            error: "Analysis cancelled by user",
+            cancelled: true,
           });
         });
         this.pendingResolvers.delete(videoId);
       }
-      
+
       return true;
     }
     return false;
@@ -267,10 +272,10 @@ class PerspectivePrismClient {
    */
   async makeAnalysisRequest(videoUrl, videoId) {
     const controller = new AbortController();
-    
+
     // Store abort controller for cancellation
     this.abortControllers.set(videoId, controller);
-    
+
     const timeoutId = setTimeout(() => {
       controller.abort();
     }, this.TIMEOUT_MS);
@@ -435,17 +440,28 @@ class PerspectivePrismClient {
       }
       return `Unable to complete analysis (Error ${error.status}).`;
     }
-    
+
     // Handle network/connection errors (TypeError from fetch when backend is offline)
-    if (error instanceof TypeError && (error.message.includes('fetch') || error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
+    if (
+      error instanceof TypeError &&
+      error.message &&
+      (error.message.toLowerCase().includes("fetch") ||
+        error.message.toLowerCase().includes("failed to fetch") ||
+        error.message.toLowerCase().includes("networkerror"))
+    ) {
       return "Cannot connect to Perspective Prism. Check your backend URL in settings.";
     }
-    
+
     // Handle generic network errors
-    if (error.message && (error.message.includes('network') || error.message.includes('ECONNREFUSED') || error.message.includes('connection'))) {
+    if (
+      error.message &&
+      (error.message.includes("network") ||
+        error.message.includes("ECONNREFUSED") ||
+        error.message.includes("connection"))
+    ) {
       return "Cannot connect to Perspective Prism. Check your backend URL in settings.";
     }
-    
+
     return "An unexpected error occurred. Please try again.";
   }
 
