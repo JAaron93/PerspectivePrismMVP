@@ -334,5 +334,5 @@ Attach screenshots of:
 ---
 
 **Document Version:** 1.0  
-**Last Updated:** 2024-01-XX  
+**Last Updated:** 2025-11-29 
 **Extension Version:** 1.0.0
