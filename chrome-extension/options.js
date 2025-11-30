@@ -54,6 +54,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Perform initial validation
   validateBackendUrl();
   validateCacheDuration();
+
+  // Check for privacy policy version updates
+  await checkPrivacyPolicyVersion();
 });
 
 /**
@@ -463,4 +466,59 @@ function clearMessages() {
   backendUrlSuccess.classList.remove("visible");
   saveSuccess.classList.remove("visible");
   saveError.classList.remove("visible");
+}
+
+
+/**
+ * Check for privacy policy version updates and show dialog if needed.
+ * This runs on settings page load to ensure users are aware of policy changes.
+ */
+async function checkPrivacyPolicyVersion() {
+  try {
+    // Check if ConsentManager is available
+    if (typeof ConsentManager === "undefined") {
+      console.warn(
+        "[Options] ConsentManager not available, skipping policy version check",
+      );
+      return;
+    }
+
+    const consentManager = new ConsentManager();
+    const consent = await consentManager.checkConsent();
+
+    // If there's a version mismatch, show the consent dialog
+    if (
+      !consent.hasConsent &&
+      consent.reason === "version_mismatch"
+    ) {
+      console.log(
+        `[Options] Privacy policy version mismatch detected: ${consent.storedVersion} -> ${consent.currentVersion}`,
+      );
+
+      // Show consent dialog with version update message
+      consentManager.showConsentDialog(
+        async (allowed) => {
+          if (allowed) {
+            console.log("[Options] User accepted updated privacy policy");
+            // Show success message
+            showSaveSuccess(
+              "Privacy policy accepted. You can now use the extension.",
+            );
+          } else {
+            console.log("[Options] User declined updated privacy policy");
+            // Show warning message
+            showSaveError(
+              "Privacy policy declined. Analysis features are disabled until you accept the updated policy.",
+            );
+          }
+        },
+        consent, // Pass consent object with version info
+      );
+    }
+  } catch (error) {
+    console.error(
+      "[Options] Failed to check privacy policy version:",
+      error,
+    );
+  }
 }

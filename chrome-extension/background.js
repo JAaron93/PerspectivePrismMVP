@@ -55,14 +55,96 @@ chrome.runtime.onInstalled.addListener((details) => {
       "[Perspective Prism] Extension updated to version",
       chrome.runtime.getManifest().version,
     );
-    // Optionally show update page or notification
+    // Check for privacy policy version changes
+    checkPrivacyPolicyVersion();
   }
 });
+
+// Check privacy policy version on startup
+chrome.runtime.onStartup.addListener(() => {
+  console.log("[Perspective Prism] Extension started");
+  checkPrivacyPolicyVersion();
+});
+
+/**
+ * Check if privacy policy version has changed and notify user if needed.
+ * This runs on extension startup and update.
+ */
+async function checkPrivacyPolicyVersion() {
+  const CURRENT_POLICY_VERSION = "1.0.0";
+
+  try {
+    const result = await new Promise((resolve) => {
+      chrome.storage.sync.get(["consent"], (result) => {
+        resolve(result);
+      });
+    });
+
+    const consent = result.consent;
+
+    // If no consent exists, user hasn't used the extension yet - no action needed
+    if (!consent || !consent.given) {
+      console.log(
+        "[Perspective Prism] No existing consent, skipping version check",
+      );
+      return;
+    }
+
+    // Check if policy version has changed
+    const storedVersion = consent.policyVersion || "0.0.0";
+    if (storedVersion !== CURRENT_POLICY_VERSION) {
+      console.log(
+        `[Perspective Prism] Privacy policy version changed: ${storedVersion} -> ${CURRENT_POLICY_VERSION}`,
+      );
+
+      // Store the version mismatch flag so content scripts can show the dialog
+      await new Promise((resolve, reject) => {
+        chrome.storage.local.set(
+          {
+            policy_version_mismatch: {
+              detected: true,
+              storedVersion: storedVersion,
+              currentVersion: CURRENT_POLICY_VERSION,
+              timestamp: Date.now(),
+            },
+          },
+          () => {
+            if (chrome.runtime.lastError) {
+              reject(chrome.runtime.lastError);
+            } else {
+              resolve();
+            }
+          },
+        );
+      });
+
+      console.log(
+        "[Perspective Prism] Policy version mismatch flag set. User will be prompted on next analysis attempt.",
+      );
+    } else {
+      // Clear any existing mismatch flag
+      await new Promise((resolve) => {
+        chrome.storage.local.remove(["policy_version_mismatch"], () => {
+          resolve();
+        });
+      });
+    }
+  } catch (error) {
+    console.error(
+      "[Perspective Prism] Failed to check privacy policy version:",
+      error,
+    );
+  }
+}
 
 // Message handling
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "ANALYZE_VIDEO") {
     handleAnalysisRequest(message, sendResponse);
+    return true; // Indicates async response
+  }
+  if (message.type === "CANCEL_ANALYSIS") {
+    handleCancelAnalysis(message, sendResponse);
     return true; // Indicates async response
   }
   if (message.type === "CHECK_CACHE") {
@@ -100,6 +182,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "OPEN_WELCOME_PAGE") {
     chrome.tabs.create({ url: chrome.runtime.getURL("welcome.html") });
     return false; // No async response needed
+  }
+  if (message.type === "CHECK_POLICY_VERSION") {
+    handleCheckPolicyVersion(sendResponse);
+    return true; // Indicates async response
   }
 });
 
@@ -184,6 +270,46 @@ async function handleAnalysisRequest(message, sendResponse) {
       });
     }
 
+    sendResponse({ success: false, error: error.message });
+  }
+}
+
+/**
+ * Handle cancel analysis request
+ * @param {Object} message - Message with videoId
+ * @param {Function} sendResponse - Response callback
+ */
+async function handleCancelAnalysis(message, sendResponse) {
+  if (!client) {
+    sendResponse({ success: false, error: 'Client not initialized' });
+    return;
+  }
+
+  const validation = validateVideoId(message);
+  if (!validation.valid) {
+    sendResponse({ success: false, error: validation.error });
+    return;
+  }
+
+  const videoId = validation.videoId;
+  
+  try {
+    const cancelled = client.cancelAnalysis(videoId);
+    
+    if (cancelled) {
+      // Update state to cancelled
+      setAnalysisState(videoId, {
+        status: 'cancelled',
+        cancelledAt: Date.now()
+      });
+      
+      sendResponse({ success: true, cancelled: true });
+    } else {
+      // No active request found
+      sendResponse({ success: false, error: 'No active analysis found for this video' });
+    }
+  } catch (error) {
+    console.error('[Perspective Prism] Cancel analysis failed:', error);
     sendResponse({ success: false, error: error.message });
   }
 }
@@ -374,5 +500,44 @@ async function handleRevokeConsent(sendResponse) {
   } catch (error) {
     console.error("[Perspective Prism] Failed to revoke consent:", error);
     sendResponse({ success: false, error: error.message });
+  }
+}
+
+/**
+ * Check if there's a privacy policy version mismatch.
+ * @param {Function} sendResponse - Response callback
+ */
+async function handleCheckPolicyVersion(sendResponse) {
+  try {
+    const result = await new Promise((resolve) => {
+      chrome.storage.local.get(["policy_version_mismatch"], (result) => {
+        resolve(result);
+      });
+    });
+
+    const mismatch = result.policy_version_mismatch;
+
+    if (mismatch && mismatch.detected) {
+      sendResponse({
+        success: true,
+        hasMismatch: true,
+        storedVersion: mismatch.storedVersion,
+        currentVersion: mismatch.currentVersion,
+      });
+    } else {
+      sendResponse({
+        success: true,
+        hasMismatch: false,
+      });
+    }
+  } catch (error) {
+    console.error(
+      "[Perspective Prism] Failed to check policy version:",
+      error,
+    );
+    sendResponse({
+      success: false,
+      error: error.message,
+    });
   }
 }

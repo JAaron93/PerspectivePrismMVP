@@ -11,7 +11,7 @@ class ConsentManager {
 
   /**
    * Check if valid consent exists.
-   * @returns {Promise<boolean>} True if consent is given and version matches.
+   * @returns {Promise<Object>} Object with hasConsent, reason, and version info.
    */
   async checkConsent() {
     return new Promise((resolve) => {
@@ -29,6 +29,9 @@ class ConsentManager {
         if (!consent || !consent.given) {
           resolve({ hasConsent: false, reason: "missing" });
         } else if (consent.policyVersion !== this.POLICY_VERSION) {
+          console.log(
+            `[Perspective Prism] Privacy policy version mismatch: stored=${consent.policyVersion}, current=${this.POLICY_VERSION}`,
+          );
           resolve({
             hasConsent: false,
             reason: "version_mismatch",
@@ -43,11 +46,62 @@ class ConsentManager {
   }
 
   /**
+   * Log policy version change for audit trail.
+   * @param {string} oldVersion - Previous policy version.
+   * @param {string} newVersion - New policy version.
+   * @param {boolean} accepted - Whether user accepted the new version.
+   */
+  async logVersionChange(oldVersion, newVersion, accepted) {
+    const logEntry = {
+      timestamp: Date.now(),
+      oldVersion: oldVersion,
+      newVersion: newVersion,
+      accepted: accepted,
+    };
+
+    try {
+      // Get existing logs
+      const result = await new Promise((resolve) => {
+        chrome.storage.local.get(["policy_version_logs"], (result) => {
+          resolve(result.policy_version_logs || []);
+        });
+      });
+
+      const logs = result;
+      logs.push(logEntry);
+
+      // Keep only last 50 logs
+      const trimmedLogs = logs.slice(-50);
+
+      // Save logs
+      await new Promise((resolve, reject) => {
+        chrome.storage.local.set({ policy_version_logs: trimmedLogs }, () => {
+          if (chrome.runtime.lastError) {
+            reject(chrome.runtime.lastError);
+          } else {
+            resolve();
+          }
+        });
+      });
+
+      console.log(
+        `[Perspective Prism] Policy version change logged: ${oldVersion} -> ${newVersion} (accepted: ${accepted})`,
+      );
+    } catch (error) {
+      console.error(
+        "[Perspective Prism] Failed to log version change:",
+        error,
+      );
+    }
+  }
+
+  /**
    * Save consent status.
    * @param {boolean} given - Whether consent was given.
+   * @param {string} oldVersion - Previous policy version (for logging).
    * @returns {Promise<void>}
    */
-  async saveConsent(given) {
+  async saveConsent(given, oldVersion = null) {
     return new Promise((resolve, reject) => {
       const data = {
         [this.STORAGE_KEY]: {
@@ -57,7 +111,7 @@ class ConsentManager {
         },
       };
 
-      chrome.storage.sync.set(data, () => {
+      chrome.storage.sync.set(data, async () => {
         if (chrome.runtime.lastError) {
           console.error(
             "[Perspective Prism] Failed to save consent:",
@@ -66,6 +120,16 @@ class ConsentManager {
           reject(chrome.runtime.lastError);
         } else {
           console.log(`[Perspective Prism] Consent saved: ${given}`);
+
+          // Log version change if applicable
+          if (oldVersion && oldVersion !== this.POLICY_VERSION) {
+            await this.logVersionChange(
+              oldVersion,
+              this.POLICY_VERSION,
+              given,
+            );
+          }
+
           resolve();
         }
       });
@@ -232,6 +296,15 @@ class ConsentManager {
       try {
         if (isUpdate) {
           // If declining update, revoke consent entirely
+          // Log the version change as declined
+          if (options.storedVersion) {
+            await this.logVersionChange(
+              options.storedVersion,
+              this.POLICY_VERSION,
+              false,
+            );
+          }
+
           try {
             await new Promise((resolve, reject) => {
               chrome.runtime.sendMessage(
@@ -253,7 +326,7 @@ class ConsentManager {
               revokeError,
             );
             // Fallback: try to save local consent as false at least
-            await this.saveConsent(false);
+            await this.saveConsent(false, options.storedVersion);
           }
         } else {
           await this.saveConsent(false);
@@ -272,7 +345,9 @@ class ConsentManager {
 
     allowBtn.onclick = async () => {
       try {
-        await this.saveConsent(true);
+        // Pass old version for logging if this is an update
+        const oldVersion = isUpdate ? options.storedVersion : null;
+        await this.saveConsent(true, oldVersion);
         host.remove();
         callback(true);
       } catch (error) {

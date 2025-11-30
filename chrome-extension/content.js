@@ -9,6 +9,7 @@ let analysisButton = null;
 let cancelRequest = false;
 let loadingTimer = null;
 let previouslyFocusedElement = null; // Track focus before panel opens
+let wasPanelOpen = false; // Track if panel was open before navigation
 
 // Constants
 const BUTTON_ID = "pp-analysis-button";
@@ -1221,6 +1222,7 @@ function showSetupNotification() {
   
   // Store reference
   analysisPanel = panel;
+  wasPanelOpen = true; // Mark panel as open for navigation persistence
   
   // Setup keyboard navigation
   setupKeyboardNavigation(panel, shadow);
@@ -1802,6 +1804,7 @@ function showResults(data, isCached = false) {
 
   document.body.appendChild(panel);
   analysisPanel = panel;
+  wasPanelOpen = true; // Mark panel as open for navigation persistence
 
   // Setup keyboard navigation (Escape to close, Tab cycling)
   setupKeyboardNavigation(panel, shadow);
@@ -1855,6 +1858,7 @@ function showPanelLoading() {
 
   document.body.appendChild(panel);
   analysisPanel = panel;
+  wasPanelOpen = true; // Mark panel as open for navigation persistence
 
   // Setup keyboard navigation (Escape to close, Tab cycling)
   setupKeyboardNavigation(panel, shadow);
@@ -1882,9 +1886,26 @@ function showPanelLoading() {
   }, 15000);
 
   // Cancel handler
-  cancelBtn.onclick = () => {
+  cancelBtn.onclick = async () => {
     cancelRequest = true;
     clearLoadingTimer();
+    
+    // Send cancel message to background
+    if (currentVideoId) {
+      try {
+        await sendMessageWithRetry({
+          type: 'CANCEL_ANALYSIS',
+          videoId: currentVideoId
+        }, {
+          timeout: 2000,
+          maxAttempts: 2
+        });
+        console.log('[Perspective Prism] Analysis cancelled');
+      } catch (error) {
+        console.error('[Perspective Prism] Failed to send cancel message:', error);
+      }
+    }
+    
     removePanel();
     setButtonState("idle");
   };
@@ -1944,6 +1965,7 @@ function showPanelError(errorMessage) {
 
   document.body.appendChild(panel);
   analysisPanel = panel;
+  wasPanelOpen = true; // Mark panel as open for navigation persistence
 
   // Setup keyboard navigation (Escape to close, Tab cycling)
   setupKeyboardNavigation(panel, shadow);
@@ -1983,6 +2005,7 @@ function removePanel() {
 
     analysisPanel.remove();
     analysisPanel = null;
+    wasPanelOpen = false; // Reset panel state tracking
 
     // Return focus to previously focused element (Analysis Button)
     if (
@@ -2073,10 +2096,24 @@ function cleanup() {
     cancelRequest = true;
     clearLoadingTimer();
     
-    // 3. Close and clean panel UI
-    removePanel();
+    // 3. Track panel state before cleanup
+    wasPanelOpen = analysisPanel !== null;
+    
+    // 4. Close and clean panel UI (but remember it was open)
+    if (analysisPanel) {
+      // Remove event listener if it exists
+      if (analysisPanel._keydownHandler) {
+        analysisPanel.removeEventListener(
+          "keydown",
+          analysisPanel._keydownHandler,
+        );
+      }
+      analysisPanel.remove();
+      analysisPanel = null;
+      // Note: Don't reset wasPanelOpen here - we need it for re-opening
+    }
 
-    // 4. Remove button (will be re-injected if needed)
+    // 5. Remove button (will be re-injected if needed)
     if (analysisButton) {
       analysisButton.remove();
       analysisButton = null;
@@ -2084,10 +2121,10 @@ function cleanup() {
     const existingBtn = document.getElementById(BUTTON_ID);
     if (existingBtn) existingBtn.remove();
 
-    // 5. Reset state
+    // 6. Reset state
     currentVideoId = null;
     
-    console.log("[Perspective Prism] Cleanup complete.");
+    console.log("[Perspective Prism] Cleanup complete. Panel was open:", wasPanelOpen);
   } catch (error) {
     console.error("[Perspective Prism] Error during cleanup:", error);
   } finally {
@@ -2121,6 +2158,13 @@ function handleNavigation() {
         if (extractVideoId() !== currentVideoId) return;
         injectButton();
         setupObservers();
+        
+        // If panel was open before navigation, automatically analyze the new video
+        if (wasPanelOpen) {
+          console.log("[Perspective Prism] Panel was open, auto-analyzing new video...");
+          // Trigger analysis for the new video
+          handleAnalysisClick();
+        }
       }, 500);
     }
   } else if (currentVideoId) {
@@ -2133,6 +2177,47 @@ function handleNavigation() {
     }
   }
 }
+
+/**
+ * Handle progress updates from background service worker
+ * Updates the loading panel with progress information
+ */
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'ANALYSIS_PROGRESS') {
+    const { videoId, payload } = message;
+    
+    // Only handle progress for current video
+    if (videoId !== currentVideoId) {
+      return;
+    }
+    
+    // Only update if panel is in loading state
+    if (!analysisPanel) {
+      return;
+    }
+    
+    const shadow = analysisPanel.shadowRoot;
+    if (!shadow) {
+      return;
+    }
+    
+    const submessageEl = shadow.getElementById('pp-loading-submessage');
+    if (!submessageEl) {
+      return;
+    }
+    
+    // Update message based on elapsed time
+    if (payload.elapsedMs >= 10000 && payload.message) {
+      submessageEl.textContent = payload.message;
+    }
+    
+    // Log progress for debugging
+    console.log(`[Perspective Prism] Progress update for ${videoId}:`, payload);
+  }
+  
+  // Don't send response (not needed for progress updates)
+  return false;
+});
 
 function init() {
   loadMetrics();

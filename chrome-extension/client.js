@@ -6,6 +6,7 @@ class PerspectivePrismClient {
   constructor(baseUrl) {
     this.baseUrl = baseUrl.replace(/\/$/, ""); // Remove trailing slash
     this.pendingRequests = new Map(); // In-memory deduplication
+    this.abortControllers = new Map(); // Map<videoId, AbortController> for cancellation
     this.MAX_RETRIES = 2;
     this.RETRY_DELAYS = [2000, 4000]; // Exponential backoff: 2s, 4s
     this.TIMEOUT_MS = 120000; // 120 seconds
@@ -221,12 +222,55 @@ class PerspectivePrismClient {
   }
 
   /**
+   * Cancel an in-flight analysis request
+   * @param {string} videoId - The video ID to cancel
+   * @returns {boolean} - True if request was cancelled, false if no request found
+   */
+  cancelAnalysis(videoId) {
+    const controller = this.abortControllers.get(videoId);
+    if (controller) {
+      console.log(`[PerspectivePrismClient] Cancelling analysis for ${videoId}`);
+      controller.abort();
+      this.abortControllers.delete(videoId);
+      
+      // Clean up pending request
+      this.pendingRequests.delete(videoId);
+      
+      // Clean up persisted state
+      this.cleanupPersistedRequest(videoId).catch(err => 
+        console.error(`[PerspectivePrismClient] Failed to cleanup after cancel:`, err)
+      );
+      
+      // Notify any waiting resolvers
+      const resolvers = this.pendingResolvers.get(videoId);
+      if (resolvers) {
+        resolvers.forEach(({ resolve, timeoutId }) => {
+          clearTimeout(timeoutId);
+          resolve({
+            success: false,
+            error: 'Analysis cancelled by user',
+            cancelled: true
+          });
+        });
+        this.pendingResolvers.delete(videoId);
+      }
+      
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Make the actual HTTP request using the async job API.
    * @param {string} videoUrl
    * @param {string} videoId
    */
   async makeAnalysisRequest(videoUrl, videoId) {
     const controller = new AbortController();
+    
+    // Store abort controller for cancellation
+    this.abortControllers.set(videoId, controller);
+    
     const timeoutId = setTimeout(() => {
       controller.abort();
     }, this.TIMEOUT_MS);
@@ -288,6 +332,8 @@ class PerspectivePrismClient {
     } finally {
       clearTimeout(timeoutId);
       progressTimers.forEach((t) => clearTimeout(t));
+      // Clean up abort controller
+      this.abortControllers.delete(videoId);
     }
   }
 

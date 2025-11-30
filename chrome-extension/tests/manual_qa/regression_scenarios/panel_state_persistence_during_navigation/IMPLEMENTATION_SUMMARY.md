@@ -23,7 +23,7 @@ The extension includes basic mobile-specific code and styles. However, comprehen
 
 The manifest includes mobile YouTube URLs in both `host_permissions` and `content_scripts`:
 
-json
+```json
 {
 "host_permissions": ["https://m.youtube.com/*"],
 "content_scripts": [
@@ -33,7 +33,7 @@ json
 ]
 }
 
-````
+```
 
 **Status**: ✅ Configured correctly (Pending Verification)
 

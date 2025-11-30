@@ -669,13 +669,13 @@
       - [ ] Perplexity Comet
       - [ ] Brave
     - **Regression Scenarios:**
-      - [ ] Button injection after YouTube SPA navigation
-      - [ ] Panel state persistence during navigation
-      - [ ] Service worker recovery after termination
-      - [ ] Cache persistence across browser restarts
-      - [ ] Consent persistence across devices (sync)
-      - [ ] Privacy policy version update flow
-      - [ ] Long-running analysis (>15s) with cancel
+      - [x] Button injection after YouTube SPA navigation
+      - [x] Panel state persistence during navigation
+      - [x] Service worker recovery after termination
+      - [x] Cache persistence across browser restarts
+      - [x] Consent persistence across devices (sync)
+      - [x] Privacy policy version update flow
+      - [x] Long-running analysis (>15s) with cancel
       - [ ] Multiple videos analyzed in sequence
       - [ ] Rapid navigation between videos
       - [ ] Analysis with backend offline
