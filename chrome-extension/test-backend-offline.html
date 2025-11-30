@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test: Backend Offline Scenario</title>
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+
+      .header {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        margin: 0 0 10px 0;
+        color: #333;
+      }
+
+      .description {
+        color: #666;
+        line-height: 1.6;
+      }
+
+      .test-section {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      h2 {
+        margin-top: 0;
+        color: #333;
+        border-bottom: 2px solid #e0e0e0;
+        padding-bottom: 10px;
+      }
+
+      .test-step {
+        margin: 15px 0;
+        padding: 15px;
+        background: #f9f9f9;
+        border-left: 4px solid #4285f4;
+        border-radius: 4px;
+      }
+
+      .step-number {
+        font-weight: bold;
+        color: #4285f4;
+        margin-bottom: 5px;
+      }
+
+      .expected-result {
+        margin-top: 10px;
+        padding: 10px;
+        background: #e8f5e9;
+        border-left: 4px solid #4caf50;
+        border-radius: 4px;
+      }
+
+      .expected-result strong {
+        color: #2e7d32;
+      }
+
+      .warning {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 4px;
+      }
+
+      .warning strong {
+        color: #856404;
+      }
+
+      .checklist {
+        list-style: none;
+        padding: 0;
+      }
+
+      .checklist li {
+        padding: 10px;
+        margin: 5px 0;
+        background: #f9f9f9;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+      }
+
+      .checklist input[type="checkbox"] {
+        margin-right: 10px;
+        width: 18px;
+        height: 18px;
+      }
+
+      .error-examples {
+        margin-top: 15px;
+      }
+
+      .error-example {
+        padding: 10px;
+        margin: 10px 0;
+        background: #ffebee;
+        border-left: 4px solid #f44336;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 14px;
+      }
+
+      .scenario {
+        margin: 20px 0;
+        padding: 15px;
+        background: #e3f2fd;
+        border-left: 4px solid #2196f3;
+        border-radius: 4px;
+      }
+
+      .scenario-title {
+        font-weight: bold;
+        color: #1565c0;
+        margin-bottom: 10px;
+      }
+
+      button {
+        background: #4285f4;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        margin: 5px;
+      }
+
+      button:hover {
+        background: #357ae8;
+      }
+
+      .status {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+        font-weight: bold;
+      }
+
+      .status.pass {
+        background: #e8f5e9;
+        color: #2e7d32;
+      }
+
+      .status.fail {
+        background: #ffebee;
+        color: #c62828;
+      }
+
+      .status.pending {
+        background: #fff3cd;
+        color: #856404;
+      }
+
+      code {
+        background: #f5f5f5;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>🔌 Backend Offline Scenario Test</h1>
+      <p class="description">
+        This test verifies that the extension handles backend connection
+        failures gracefully, providing clear error messages and recovery options
+        to users.
+      </p>
+    </div>
+
+    <div class="test-section">
+      <h2>📋 Test Prerequisites</h2>
+      <ul class="checklist">
+        <li>
+          <input type="checkbox" id="prereq1" />
+          <label for="prereq1"
+            >Extension is installed and loaded in Chrome</label
+          >
+        </li>
+        <li>
+          <input type="checkbox" id="prereq2" />
+          <label for="prereq2"
+            >Backend URL is configured in extension settings</label
+          >
+        </li>
+        <li>
+          <input type="checkbox" id="prereq3" />
+          <label for="prereq3"
+            >You have access to stop/start the backend server</label
+          >
+        </li>
+        <li>
+          <input type="checkbox" id="prereq4" />
+          <label for="prereq4"
+            >You are on a YouTube video page (e.g.,
+            https://www.youtube.com/watch?v=dQw4w9WgXcQ)</label
+          >
+        </li>
+      </ul>
+    </div>
+
+    <div class="test-section">
+      <h2>🧪 Test Scenarios</h2>
+
+      <div class="scenario">
+        <div class="scenario-title">
+          Scenario 1: Backend Offline Before Analysis
+        </div>
+
+        <div class="test-step">
+          <div class="step-number">Step 1:</div>
+          <div>Stop the backend server (if running)</div>
+          <code>cd backend && pkill -f uvicorn</code>
+        </div>
+
+        <div class="test-step">
+          <div class="step-number">Step 2:</div>
+          <div>Navigate to a YouTube video page</div>
+        </div>
+
+        <div class="test-step">
+          <div class="step-number">Step 3:</div>
+          <div>Click the "Analyze Video" button injected by the extension</div>
+        </div>
+
+        <div class="expected-result">
+          <strong>Expected Result:</strong>
+          <ul>
+            <li>Analysis panel should open and show loading state initially</li>
+            <li>
+              After timeout/connection failure, error message should appear
+            </li>
+            <li>
+              Error message should be:
+              <code
+                >"Cannot connect to Perspective Prism. Check your backend URL in
+                settings."</code
+              >
+            </li>
+            <li>Panel should show "Retry" button</li>
+            <li>Panel should show "Open Settings" button/link</li>
+            <li>No console errors should appear (check DevTools)</li>
+          </ul>
+        </div>
+
+        <ul class="checklist">
+          <li>
+            <input type="checkbox" id="s1-check1" />
+            <label for="s1-check1">Loading state displayed initially</label>
+          </li>
+          <li>
+            <input type="checkbox" id="s1-check2" />
+            <label for="s1-check2">Correct error message displayed</label>
+          </li>
+          <li>
+            <input type="checkbox" id="s1-check3" />
+            <label for="s1-check3">Retry button present and functional</label>
+          </li>
+          <li>
+            <input type="checkbox" id="s1-check4" />
+            <label for="s1-check4"
+              >Settings button/link present and functional</label
+            >
+          </li>
+          <li>
+            <input type="checkbox" id="s1-check5" />
+            <label for="s1-check5">No console errors</label>
+          </li>
+        </ul>
+      </div>
+
+      <div class="scenario">
+        <div class="scenario-title">
+          Scenario 2: Backend Goes Offline During Analysis
+        </div>
+
+        <div class="test-step">
+          <div class="step-number">Step 1:</div>
+          <div>Start the backend server</div>
+          <code
+            >cd backend && source venv/bin/activate && uvicorn app.main:app
+            --reload</code
+          >
+        </div>
+
+        <div class="test-step">
+          <div class="step-number">Step 2:</div>
+          <div>Navigate to a YouTube video page</div>
+        </div>
+
+        <div class="test-step">
+          <div class="step-number">Step 3:</div>
+          <div>Click "Analyze Video" button</div>
+        </div>
+
+        <div class="test-step">
+          <div class="step-number">Step 4:</div>
+          <div>Immediately stop the backend server (within 2-3 seconds)</div>
+          <code>pkill -f uvicorn</code>
+        </div>
+
+        <div class="expected-result">
+          <strong>Expected Result:</strong>
+          <ul>
+            <li>Loading state should continue for a moment</li>
+            <li>
+              After connection failure detected, error message should appear
+            </li>
+            <li>Error message should indicate connection problem</li>
+            <li>Retry button should be available</li>
+            <li>Extension should not crash or freeze</li>
+          </ul>
+        </div>
+
+        <ul class="checklist">
+          <li>
+            <input type="checkbox" id="s2-check1" />
+            <label for="s2-check1"
+              >Extension handles mid-request failure gracefully</label
+            >
+          </li>
+          <li>
+            <input type="checkbox" id="s2-check2" />
+            <label for="s2-check2">Appropriate error message displayed</label>
+          </li>
+          <li>
+            <input type="checkbox" id="s2-check3" />
+            <label for="s2-check3">Retry functionality available</label>
+          </li>
+          <li>
+            <input type="checkbox" id="s2-check4" />
+            <label for="s2-check4">No extension crash or freeze</label>
+          </li>
+        </ul>
+      </div>
+
+      <div class="scenario">
+        <div class="scenario-title">
+          Scenario 3: Recovery After Backend Comes Back Online
+        </div>
+
+        <div class="test-step">
+          <div class="step-number">Step 1:</div>
+          <div>With backend offline, trigger an analysis (should fail)</div>
+        </div>
+
+        <div class="test-step">
+          <div class="step-number">Step 2:</div>
+          <div>Start the backend server</div>
+          <code
+            >cd backend && source venv/bin/activate && uvicorn app.main:app
+            --reload</code
+          >
+        </div>
+
+        <div class="test-step">
+          <div class="step-number">Step 3:</div>
+          <div>Click the "Retry" button in the error panel</div>
+        </div>
+
+        <div class="expected-result">
+          <strong>Expected Result:</strong>
+          <ul>
+            <li>Loading state should appear</li>
+            <li>Analysis should complete successfully</li>
+            <li>Results should be displayed in the panel</li>
+            <li>No lingering error states</li>
+          </ul>
+        </div>
+
+        <ul class="checklist">
+          <li>
+            <input type="checkbox" id="s3-check1" />
+            <label for="s3-check1">Retry button triggers new analysis</label>
+          </li>
+          <li>
+            <input type="checkbox" id="s3-check2" />
+            <label for="s3-check2">Analysis completes successfully</label>
+          </li>
+          <li>
+            <input type="checkbox" id="s3-check3" />
+            <label for="s3-check3">Results displayed correctly</label>
+          </li>
+          <li>
+            <input type="checkbox" id="s3-check4" />
+            <label for="s3-check4">No error state remnants</label>
+          </li>
+        </ul>
+      </div>
+
+      <div class="scenario">
+        <div class="scenario-title">
+          Scenario 4: Invalid Backend URL Configuration
+        </div>
+
+        <div class="test-step">
+          <div class="step-number">Step 1:</div>
+          <div>
+            Open extension settings (right-click extension icon → Options)
+          </div>
+        </div>
+
+        <div class="test-step">
+          <div class="step-number">Step 2:</div>
+          <div>Change backend URL to an invalid/unreachable address</div>
+          <code>http://invalid-backend-url.local:8000</code>
+        </div>
+
+        <div class="test-step">
+          <div class="step-number">Step 3:</div>
+          <div>Save settings and navigate to a YouTube video</div>
+        </div>
+
+        <div class="test-step">
+          <div class="step-number">Step 4:</div>
+          <div>Click "Analyze Video" button</div>
+        </div>
+
+        <div class="expected-result">
+          <strong>Expected Result:</strong>
+          <ul>
+            <li>Connection should fail (DNS resolution or timeout)</li>
+            <li>Error message should suggest checking settings</li>
+            <li>"Open Settings" button should be prominent</li>
+            <li>Clicking "Open Settings" should open options page</li>
+          </ul>
+        </div>
+
+        <ul class="checklist">
+          <li>
+            <input type="checkbox" id="s4-check1" />
+            <label for="s4-check1">Invalid URL handled gracefully</label>
+          </li>
+          <li>
+            <input type="checkbox" id="s4-check2" />
+            <label for="s4-check2">Error message mentions settings</label>
+          </li>
+          <li>
+            <input type="checkbox" id="s4-check3" />
+            <label for="s4-check3">Settings button opens options page</label>
+          </li>
+        </ul>
+      </div>
+
+      <div class="scenario">
+        <div class="scenario-title">Scenario 5: Network Timeout</div>
+
+        <div class="warning">
+          <strong>Note:</strong> This scenario requires simulating a
+          slow/hanging network connection. You can use Chrome DevTools Network
+          throttling or a proxy tool.
+        </div>
+
+        <div class="test-step">
+          <div class="step-number">Step 1:</div>
+          <div>Open Chrome DevTools (F12) → Network tab</div>
+        </div>
+        <div class="error-examples">
+            <div class="error-example">
+                <strong>Connection Failure:</strong><br>
+                "Cannot connect to Perspective Prism. Check your backend URL in settings."
+            </div>
+            
+            <div class="error-example">
+                <strong>Timeout:</strong><br>
+                "The analysis took too long. Please try again later."
+            </div>
+            
+            <div class="error-example">
+                <strong>Server Error (5xx):</strong><br>
+                "Our servers are experiencing issues. Please try again later."
+            </div>
+        </div>
+          <ul>
+            <li>Loading state should persist</li>
+            <li>After 120 seconds (timeout), error should appear</li>
+            <li>
+              Error message:
+              <code>"The analysis took too long. Please try again later."</code>
+            </li>
+            <li>Extension should not hang or become unresponsive</li>
+          </ul>
+        </div>
+
+        <ul class="checklist">
+          <li>
+            <input type="checkbox" id="s5-check1" />
+            <label for="s5-check1">Timeout handled after 120 seconds</label>
+          </li>
+          <li>
+            <input type="checkbox" id="s5-check2" />
+            <label for="s5-check2">Appropriate timeout error message</label>
+          </li>
+          <li>
+            <input type="checkbox" id="s5-check3" />
+            <label for="s5-check3">Extension remains responsive</label>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>🔍 Error Message Verification</h2>
+      <p>
+        Verify that the following error messages appear in the correct
+        scenarios:
+      </p>
+
+      <div class="error-examples">
+        <div class="error-example">
+          <strong>Connection Failure:</strong><br />
+          "Cannot connect to Perspective Prism. Check your backend URL in
+          settings."
+        </div>
+
+        <div class="error-example">
+          <strong>Timeout:</strong><br />
+          "Analysis is taking longer than expected. Please try again."
+        </div>
+
+        <div class="error-example">
+          <strong>Server Error (5xx):</strong><br />
+          "Server error. Please try again later."
+        </div>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>✅ Acceptance Criteria</h2>
+      <ul class="checklist">
+        <li>
+          <input type="checkbox" id="accept1" />
+          <label for="accept1"
+            >Extension detects backend offline condition</label
+          >
+        </li>
+        <li>
+          <input type="checkbox" id="accept2" />
+          <label for="accept2"
+            >Clear, user-friendly error messages displayed</label
+          >
+        </li>
+        <li>
+          <input type="checkbox" id="accept3" />
+          <label for="accept3">Retry functionality works correctly</label>
+        </li>
+        <li>
+          <input type="checkbox" id="accept4" />
+          <label for="accept4">Settings link/button opens options page</label>
+        </li>
+        <li>
+          <input type="checkbox" id="accept5" />
+          <label for="accept5"
+            >Extension recovers when backend comes back online</label
+          >
+        </li>
+        <li>
+          <input type="checkbox" id="accept6" />
+          <label for="accept6">No console errors or exceptions</label>
+        </li>
+        <li>
+          <input type="checkbox" id="accept7" />
+          <label for="accept7"
+            >Extension remains responsive during failures</label
+          >
+        </li>
+        <li>
+          <input type="checkbox" id="accept8" />
+          <label for="accept8">Timeout handling works correctly (120s)</label>
+        </li>
+      </ul>
+    </div>
+
+    <div class="test-section">
+      <h2>📝 Test Results</h2>
+      <div id="results">
+        <p>Complete the test scenarios above and document your findings:</p>
+        <textarea
+          id="notes"
+          style="
+            width: 100%;
+            min-height: 150px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+          "
+          placeholder="Enter test notes, observations, and any issues found..."
+        ></textarea>
+        <br /><br />
+        <button onclick="saveResults()">Save Test Results</button>
+        <button onclick="generateReport()">Generate Report</button>
+      </div>
+    </div>
+
+    <script>
+      function saveResults() {
+        const notes = document.getElementById("notes").value;
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        const results = {
+          timestamp: new Date().toISOString(),
+          notes: notes,
+          checklist: {},
+        };
+
+        checkboxes.forEach((cb) => {
+          results.checklist[cb.id] = cb.checked;
+        });
+
+        localStorage.setItem(
+          "backend-offline-test-results",
+          JSON.stringify(results),
+        );
+        alert("Test results saved!");
+      }
+
+      function generateReport() {
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        const total = checkboxes.length;
+        const checked = Array.from(checkboxes).filter(
+          (cb) => cb.checked,
+        ).length;
+        const percentage = Math.round((checked / total) * 100);
+
+        const report = `
+Backend Offline Test Report
+===========================
+Date: ${new Date().toLocaleString()}
+Completion: ${checked}/${total} (${percentage}%)
+
+Status: ${percentage === 100 ? "PASS ✅" : percentage >= 80 ? "PARTIAL PASS ⚠️" : "FAIL ❌"}
+
+Notes:
+${document.getElementById("notes").value || "No notes provided"}
+            `;
+
+        console.log(report);
+        alert("Report generated! Check the console (F12) for details.");
+      }
+
+      // Load saved results on page load
+      window.addEventListener("load", () => {
+        const saved = localStorage.getItem("backend-offline-test-results");
+        if (saved) {
+          const results = JSON.parse(saved);
+          document.getElementById("notes").value = results.notes || "";
+
+          Object.entries(results.checklist).forEach(([id, checked]) => {
+            const checkbox = document.getElementById(id);
+            if (checkbox) {
+              checkbox.checked = checked;
+            }
+          });
+        }
+      });
+    </script>
+  </body>
+</html>

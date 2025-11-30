@@ -140,7 +140,7 @@ The extension implements a comprehensive recovery mechanism:
 
 **Acceptance Criteria**:
 
-- Retry executes within 5 seconds of scheduled time
+- Retry executes within ~1 minute of scheduled time (Chrome alarm precision)
 - No duplicate requests are made
 - User sees successful analysis result
 

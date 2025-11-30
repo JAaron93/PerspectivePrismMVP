@@ -676,9 +676,9 @@
       - [x] Consent persistence across devices (sync)
       - [x] Privacy policy version update flow
       - [x] Long-running analysis (>15s) with cancel
-      - [ ] Multiple videos analyzed in sequence
-      - [ ] Rapid navigation between videos
-      - [ ] Analysis with backend offline
+      - [x] Multiple videos analyzed in sequence
+      - [x] Rapid navigation between videos
+      - [x] Analysis with backend offline
     - **Accessibility Testing:**
       - [ ] Keyboard navigation (Tab, Arrow keys, Escape)
       - [ ] Screen reader announcements (NVDA/JAWS)

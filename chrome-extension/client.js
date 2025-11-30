@@ -435,6 +435,17 @@ class PerspectivePrismClient {
       }
       return `Unable to complete analysis (Error ${error.status}).`;
     }
+    
+    // Handle network/connection errors (TypeError from fetch when backend is offline)
+    if (error instanceof TypeError && (error.message.includes('fetch') || error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
+      return "Cannot connect to Perspective Prism. Check your backend URL in settings.";
+    }
+    
+    // Handle generic network errors
+    if (error.message && (error.message.includes('network') || error.message.includes('ECONNREFUSED') || error.message.includes('connection'))) {
+      return "Cannot connect to Perspective Prism. Check your backend URL in settings.";
+    }
+    
     return "An unexpected error occurred. Please try again.";
   }
 

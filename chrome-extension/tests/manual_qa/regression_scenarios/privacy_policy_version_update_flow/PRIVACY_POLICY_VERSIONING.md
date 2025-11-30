@@ -269,7 +269,7 @@ Request:
 
 ```javascript
 {
-  type: "CHECK_POLICY_VERSION";
+  type: "CHECK_POLICY_VERSION"
 }
 ```
 
@@ -293,12 +293,6 @@ Response:
 **When Emitted**: When user declines an updated privacy policy
 
 **Payload**:
-
-```javascript
-{
-  type: "REVOKE_CONSENT";
-}
-```
 
 **Expected Background Behavior**:
 
