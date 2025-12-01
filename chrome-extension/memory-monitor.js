@@ -190,6 +190,22 @@ class MemoryMonitor {
       // Clear any large data structures
       if (typeof window.ppAnalysisData !== "undefined") {
         delete window.ppAnalysisData;
+        console.log("[MemoryMonitor] Cleared analysis data");
+      }
+
+      // Force garbage collection (if available)
+      if (typeof gc !== "undefined") {
+        gc();
+        console.log("[MemoryMonitor] Forced garbage collection");
+      }
+    } catch (error) {
+      console.error("[MemoryMonitor] Emergency cleanup failed:", error);
+    }
+  }
+
+  /**
+   * Emergency cleanup for background worker
+   */
   emergencyCleanupBackground() {
     try {
       if (typeof chrome === 'undefined' || !chrome.storage) {
@@ -218,26 +234,6 @@ class MemoryMonitor {
       }
     } catch (error) {
       console.error('[MemoryMonitor] Emergency cleanup failed:', error);
-    }
-  }
-        // Remove oldest 50% of cache entries
-        if (cacheKeys.length > 0) {
-          const toRemove = cacheKeys.slice(0, Math.ceil(cacheKeys.length / 2));
-          chrome.storage.local.remove(toRemove, () => {
-            console.log(
-              `[MemoryMonitor] Removed ${toRemove.length} cache entries`,
-            );
-          });
-        }
-      });
-
-      // Force garbage collection (if available)
-      if (typeof gc !== "undefined") {
-        gc();
-        console.log("[MemoryMonitor] Forced garbage collection");
-      }
-    } catch (error) {
-      console.error("[MemoryMonitor] Emergency cleanup failed:", error);
     }
   }
 
