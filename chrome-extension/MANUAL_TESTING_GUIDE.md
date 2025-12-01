@@ -153,7 +153,7 @@ Test on different YouTube layouts:
 - [ ] Extension memory usage (<10MB) - See `MEMORY_PROFILING.md`
 - [x] Page load impact (<100ms) - See `PAGE_LOAD_PERFORMANCE_TESTING.md`
 - [ ] Analysis response time (<5s for cached)
-- [ ] Cache size monitoring
+- [x] Cache size monitoring - See `tests/manual_qa/performance_testing/cache_size_monitoring.md`
 
 ### Page Load Performance Testing
 
@@ -182,6 +182,37 @@ Test on different YouTube layouts:
 - Lazy initialization of UI components
 - Debounced MutationObserver (500ms)
 - Minimal initial execution footprint
+
+### Cache Size Monitoring
+
+**Objective**: Verify that storage usage is tracked over time, eviction events are logged, and cache hit/miss rates are monitored correctly (Requirement 8.5).
+
+**Quick Test**:
+
+1. Open `test-cache-size-monitoring.html` in Chrome
+2. Use the interactive test page to simulate cache operations
+3. Verify metrics are tracked and displayed correctly
+
+**Detailed Guide**: See `tests/manual_qa/performance_testing/cache_size_monitoring.md` for comprehensive testing procedures, including:
+
+- Cache hit/miss rate tracking
+- Storage usage monitoring over time
+- Quota level detection (normal/warning/critical)
+- Eviction event logging
+- Metrics persistence and reset
+
+**Expected Results**:
+- Cache hit/miss rates calculated correctly
+- Storage usage tracked with quota snapshots
+- Eviction events logged with details (video IDs, freed space, reason)
+- Metrics persist across browser sessions
+- Quota levels trigger at correct thresholds (80% warning, 95% critical)
+
+**Monitoring Features**:
+- MetricsTracker keeps last 100 entries for each metric type
+- QuotaManager monitors storage and triggers LRU eviction
+- Real-time quota usage visualization with color-coded progress bar
+- Detailed eviction event history with timestamps
 
 ## Reporting Issues
 

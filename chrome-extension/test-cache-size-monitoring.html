@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cache Size Monitoring Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1a73e8;
+            margin-top: 0;
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #1a73e8;
+            padding-bottom: 8px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        button {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1557b0;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin: 16px 0;
+        }
+        .metric-card {
+            background: white;
+            padding: 16px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1a73e8;
+        }
+        .metric-unit {
+            font-size: 14px;
+            color: #666;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 24px;
+            background: #e0e0e0;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #1a73e8;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .progress-fill.warning {
+            background: #ff9800;
+        }
+        .progress-fill.critical {
+            background: #f44336;
+        }
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .log-entry {
+            padding: 8px;
+            margin: 4px 0;
+            background: #f8f9fa;
+            border-left: 3px solid #1a73e8;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Cache Size Monitoring Test</h1>
+        <p>This page tests the cache size monitoring functionality of the Perspective Prism extension.</p>
+        
+        <div class="status info">
+            <strong>Test Objective:</strong> Verify that storage usage is tracked over time, eviction events are logged, 
+            and cache hit/miss rates are monitored correctly.
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Current Storage Status</h2>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">Cache Entries</div>
+                <div class="metric-value" id="totalEntries">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Total Size</div>
+                <div class="metric-value" id="totalSize">-</div>
+                <div class="metric-unit">MB</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Quota Usage</div>
+                <div class="metric-value" id="quotaUsage">-</div>
+                <div class="metric-unit">%</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Status Level</div>
+                <div class="metric-value" id="statusLevel">-</div>
+            </div>
+        </div>
+
+        <div>
+            <strong>Quota Usage:</strong>
+            <div class="progress-bar">
+                <div class="progress-fill" id="quotaBar" style="width: 0%">0%</div>
+            </div>
+        </div>
+
+        <button onclick="refreshStatus()">🔄 Refresh Status</button>
+    </div>
+
+    <div class="container">
+        <h2>Cache Hit/Miss Statistics</h2>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">Cache Hits</div>
+                <div class="metric-value" id="cacheHits">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Cache Misses</div>
+                <div class="metric-value" id="cacheMisses">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Hit Rate</div>
+                <div class="metric-value" id="hitRate">-</div>
+                <div class="metric-unit">%</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Total Requests</div>
+                <div class="metric-value" id="totalRequests">-</div>
+            </div>
+        </div>
+        <button onclick="refreshHitMissStats()">🔄 Refresh Hit/Miss Stats</button>
+    </div>
+
+    <div class="container">
+        <h2>Storage Usage History</h2>
+        <div id="storageHistory">
+            <p class="status info">Loading storage history...</p>
+        </div>
+        <button onclick="refreshStorageHistory()">🔄 Refresh History</button>
+    </div>
+
+    <div class="container">
+        <h2>Recent Eviction Events</h2>
+        <div id="evictionEvents">
+            <p class="status info">Loading eviction events...</p>
+        </div>
+        <button onclick="refreshEvictionEvents()">🔄 Refresh Events</button>
+    </div>
+
+    <div class="container">
+        <h2>Test Actions</h2>
+        <div class="test-section">
+            <h3>1. Simulate Cache Operations</h3>
+            <p>Add mock cache entries to test storage monitoring:</p>
+            <button onclick="addMockCacheEntries(5)">Add 5 Mock Entries</button>
+            <button onclick="addMockCacheEntries(10)">Add 10 Mock Entries</button>
+            <button onclick="addMockCacheEntries(20)">Add 20 Mock Entries</button>
+            <div id="addEntriesStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Test Quota Snapshot Recording</h3>
+            <p>Manually record a quota snapshot:</p>
+            <button onclick="recordQuotaSnapshot()">📸 Record Snapshot</button>
+            <div id="snapshotStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Simulate Cache Hit/Miss</h3>
+            <p>Record cache hits and misses for testing:</p>
+            <button onclick="simulateCacheHit()">✅ Simulate Cache Hit</button>
+            <button onclick="simulateCacheMiss()">❌ Simulate Cache Miss</button>
+            <div id="hitMissStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Clear All Metrics</h3>
+            <p>Reset all metrics to start fresh:</p>
+            <button onclick="clearMetrics()" style="background: #dc3545;">🗑️ Clear All Metrics</button>
+            <div id="clearStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. Clear Cache</h3>
+            <p>Remove all cached entries:</p>
+            <button onclick="clearCache()" style="background: #dc3545;">🗑️ Clear Cache</button>
+            <div id="clearCacheStatus"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Test Log</h2>
+        <div id="testLog"></div>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <script src="client.js"></script>
+    <script src="quota-manager.js"></script>
+    <script src="metrics-tracker.js"></script>
+    <script>
+        // Initialize client and metrics tracker
+        let client;
+        let metricsTracker;
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('testLog');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            logDiv.insertBefore(entry, logDiv.firstChild);
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('testLog').innerHTML = '';
+        }
+
+        async function initializeClient() {
+            try {
+                // Get backend URL from storage
+                const config = await chrome.storage.sync.get('config');
+                const backendUrl = config.config?.backendUrl || 'http://localhost:8000';
+                
+                client = new PerspectivePrismClient(backendUrl);
+                metricsTracker = new MetricsTracker();
+                
+                log('✅ Client and MetricsTracker initialized');
+                
+                // Initial refresh
+                await refreshAll();
+            } catch (error) {
+                log(`❌ Initialization error: ${error.message}`, 'error');
+            }
+        }
+
+        async function refreshAll() {
+            await refreshStatus();
+            await refreshHitMissStats();
+            await refreshStorageHistory();
+            await refreshEvictionEvents();
+        }
+
+        async function refreshStatus() {
+            try {
+                if (!client) {
+                    log('⚠️ Client not initialized', 'warning');
+                    return;
+                }
+
+                const stats = await client.getStats();
+                const quotaStatus = await client.quotaManager.checkQuota();
+
+                document.getElementById('totalEntries').textContent = stats.totalEntries;
+                document.getElementById('totalSize').textContent = stats.totalSizeMB;
+                document.getElementById('quotaUsage').textContent = quotaStatus.usagePercentage;
+                document.getElementById('statusLevel').textContent = quotaStatus.level.toUpperCase();
+
+                // Update progress bar
+                const quotaBar = document.getElementById('quotaBar');
+                const percentage = parseFloat(quotaStatus.usagePercentage);
+                quotaBar.style.width = `${percentage}%`;
+                quotaBar.textContent = `${percentage.toFixed(1)}%`;
+                
+                // Update color based on level
+                quotaBar.className = 'progress-fill';
+                if (quotaStatus.level === 'critical') {
+                    quotaBar.classList.add('critical');
+                } else if (quotaStatus.level === 'warning') {
+                    quotaBar.classList.add('warning');
+                }
+
+                log(`📊 Status refreshed: ${stats.totalEntries} entries, ${stats.totalSizeMB} MB, ${quotaStatus.usagePercentage}% used`);
+            } catch (error) {
+                log(`❌ Error refreshing status: ${error.message}`, 'error');
+            }
+        }
+
+        async function refreshHitMissStats() {
+            try {
+                if (!metricsTracker) {
+                    log('⚠️ MetricsTracker not initialized', 'warning');
+                    return;
+                }
+
+                const stats = await metricsTracker.getHitMissRate();
+
+                document.getElementById('cacheHits').textContent = stats.hits;
+                document.getElementById('cacheMisses').textContent = stats.misses;
+                document.getElementById('hitRate').textContent = stats.hitRate;
+                document.getElementById('totalRequests').textContent = stats.total;
+
+                log(`📈 Hit/Miss stats: ${stats.hits} hits, ${stats.misses} misses, ${stats.hitRate}% hit rate`);
+            } catch (error) {
+                log(`❌ Error refreshing hit/miss stats: ${error.message}`, 'error');
+            }
+        }
+
+        async function refreshStorageHistory() {
+            try {
+                if (!metricsTracker) {
+                    log('⚠️ MetricsTracker not initialized', 'warning');
+                    return;
+                }
+
+                const history = await metricsTracker.getStorageHistory(10);
+                const historyDiv = document.getElementById('storageHistory');
+
+                if (history.length === 0) {
+                    historyDiv.innerHTML = '<p class="status info">No storage history recorded yet.</p>';
+                    return;
+                }
+
+                let html = '<table><thead><tr><th>Timestamp</th><th>Used (MB)</th><th>Usage %</th><th>Level</th></tr></thead><tbody>';
+                
+                history.forEach(snapshot => {
+                    const date = new Date(snapshot.timestamp).toLocaleString();
+                    html += `<tr>
+                        <td>${date}</td>
+                        <td>${snapshot.usedMB}</td>
+                        <td>${snapshot.usagePercentage}%</td>
+                        <td>${snapshot.level}</td>
+                    </tr>`;
+                });
+                
+                html += '</tbody></table>';
+                historyDiv.innerHTML = html;
+
+                log(`📜 Storage history refreshed: ${history.length} snapshots`);
+            } catch (error) {
+                log(`❌ Error refreshing storage history: ${error.message}`, 'error');
+            }
+        }
+
+        async function refreshEvictionEvents() {
+            try {
+                if (!metricsTracker) {
+                    log('⚠️ MetricsTracker not initialized', 'warning');
+                    return;
+                }
+
+                const events = await metricsTracker.getRecentEvictions(10);
+                const eventsDiv = document.getElementById('evictionEvents');
+
+                if (events.length === 0) {
+                    eventsDiv.innerHTML = '<p class="status info">No eviction events recorded yet.</p>';
+                    return;
+                }
+
+                let html = '<table><thead><tr><th>Timestamp</th><th>Count</th><th>Freed Space</th><th>Reason</th><th>Video IDs</th></tr></thead><tbody>';
+                
+                events.forEach(event => {
+                    const date = new Date(event.timestamp).toLocaleString();
+                    const videoIds = event.videoIds.join(', ');
+                    html += `<tr>
+                        <td>${date}</td>
+                        <td>${event.count}</td>
+                        <td>${event.freedSpaceKB} KB</td>
+                        <td>${event.reason}</td>
+                        <td><code>${videoIds}</code></td>
+                    </tr>`;
+                });
+                
+                html += '</tbody></table>';
+                eventsDiv.innerHTML = html;
+
+                log(`🗑️ Eviction events refreshed: ${events.length} events`);
+            } catch (error) {
+                log(`❌ Error refreshing eviction events: ${error.message}`, 'error');
+            }
+        }
+
+        async function addMockCacheEntries(count) {
+            const statusDiv = document.getElementById('addEntriesStatus');
+            statusDiv.innerHTML = '<p class="status info">Adding mock entries...</p>';
+            
+            try {
+                for (let i = 0; i < count; i++) {
+                    const videoId = `mock_${Date.now()}_${i}`;
+                    const mockData = {
+                        video_id: videoId,
+                        claims: [
+                            {
+                                claim_text: `Mock claim ${i}`,
+                                truth_profile: {
+                                    perspectives: {
+                                        scientific: {
+                                            assessment: 'Mock assessment',
+                                            confidence: 0.8,
+                                            supporting_evidence: ['Mock evidence']
+                                        }
+                                    },
+                                    bias_indicators: {
+                                        logical_fallacies: [],
+                                        emotional_manipulation: [],
+                                        deception_score: 0.2
+                                    },
+                                    overall_assessment: 'Mock overall assessment'
+                                }
+                            }
+                        ],
+                        metadata: {
+                            analyzed_at: new Date().toISOString()
+                        }
+                    };
+
+                    await client.set(videoId, mockData);
+                }
+
+                statusDiv.innerHTML = `<p class="status success">✅ Added ${count} mock cache entries</p>`;
+                log(`✅ Added ${count} mock cache entries`);
+                await refreshAll();
+            } catch (error) {
+                statusDiv.innerHTML = `<p class="status error">❌ Error: ${error.message}</p>`;
+                log(`❌ Error adding mock entries: ${error.message}`, 'error');
+            }
+        }
+
+        async function recordQuotaSnapshot() {
+            const statusDiv = document.getElementById('snapshotStatus');
+            
+            try {
+                if (!client || !metricsTracker) {
+                    throw new Error('Client or MetricsTracker not initialized');
+                }
+
+                const quotaStatus = await client.quotaManager.checkQuota();
+                await metricsTracker.recordQuotaSnapshot(quotaStatus);
+
+                statusDiv.innerHTML = `<p class="status success">✅ Quota snapshot recorded: ${quotaStatus.usagePercentage}% used</p>`;
+                log(`📸 Quota snapshot recorded: ${quotaStatus.usagePercentage}% used`);
+                await refreshStorageHistory();
+            } catch (error) {
+                statusDiv.innerHTML = `<p class="status error">❌ Error: ${error.message}</p>`;
+                log(`❌ Error recording snapshot: ${error.message}`, 'error');
+            }
+        }
+
+        async function simulateCacheHit() {
+            const statusDiv = document.getElementById('hitMissStatus');
+            
+            try {
+                if (!metricsTracker) {
+                    throw new Error('MetricsTracker not initialized');
+                }
+
+                const videoId = `test_${Date.now()}`;
+                await metricsTracker.recordCacheHit(videoId);
+
+                statusDiv.innerHTML = `<p class="status success">✅ Cache hit recorded for ${videoId}</p>`;
+                log(`✅ Cache hit recorded for ${videoId}`);
+                await refreshHitMissStats();
+            } catch (error) {
+                statusDiv.innerHTML = `<p class="status error">❌ Error: ${error.message}</p>`;
+                log(`❌ Error recording cache hit: ${error.message}`, 'error');
+            }
+        }
+
+        async function simulateCacheMiss() {
+            const statusDiv = document.getElementById('hitMissStatus');
+            
+            try {
+                if (!metricsTracker) {
+                    throw new Error('MetricsTracker not initialized');
+                }
+
+                const videoId = `test_${Date.now()}`;
+                await metricsTracker.recordCacheMiss(videoId);
+
+                statusDiv.innerHTML = `<p class="status success">✅ Cache miss recorded for ${videoId}</p>`;
+                log(`✅ Cache miss recorded for ${videoId}`);
+                await refreshHitMissStats();
+            } catch (error) {
+                statusDiv.innerHTML = `<p class="status error">❌ Error: ${error.message}</p>`;
+                log(`❌ Error recording cache miss: ${error.message}`, 'error');
+            }
+        }
+
+        async function clearMetrics() {
+            const statusDiv = document.getElementById('clearStatus');
+            
+            if (!confirm('Are you sure you want to clear all metrics? This cannot be undone.')) {
+                return;
+            }
+
+            try {
+                if (!metricsTracker) {
+                    throw new Error('MetricsTracker not initialized');
+                }
+
+                await metricsTracker.reset();
+
+                statusDiv.innerHTML = '<p class="status success">✅ All metrics cleared</p>';
+                log('🗑️ All metrics cleared');
+                await refreshAll();
+            } catch (error) {
+                statusDiv.innerHTML = `<p class="status error">❌ Error: ${error.message}</p>`;
+                log(`❌ Error clearing metrics: ${error.message}`, 'error');
+            }
+        }
+
+        async function clearCache() {
+            const statusDiv = document.getElementById('clearCacheStatus');
+            
+            if (!confirm('Are you sure you want to clear all cached data? This cannot be undone.')) {
+                return;
+            }
+
+            try {
+                if (!client) {
+                    throw new Error('Client not initialized');
+                }
+
+                await client.clear();
+
+                statusDiv.innerHTML = '<p class="status success">✅ Cache cleared</p>';
+                log('🗑️ Cache cleared');
+                await refreshAll();
+            } catch (error) {
+                statusDiv.innerHTML = `<p class="status error">❌ Error: ${error.message}</p>`;
+                log(`❌ Error clearing cache: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            log('🚀 Cache Size Monitoring Test page loaded');
+            initializeClient();
+        });
+    </script>
+</body>
+</html>
