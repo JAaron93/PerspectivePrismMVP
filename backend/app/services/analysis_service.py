@@ -96,7 +96,7 @@ class AnalysisService:
                 response = model.generate_content(full_prompt)
                 return response.text
 
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             return await loop.run_in_executor(None, _sync_call)
 
     async def analyze_perspective(

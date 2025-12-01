@@ -10,7 +10,7 @@ In the age of algorithmic feeds, users are often trapped in filter bubbles where
 
 Perspective Prism is an AI agent that acts as an automated, multi-perspective fact-checker.
 
-![Architecture Diagram](architecture.md)
+[See detailed architecture](architecture.md)
 
 It operates as a pipeline of specialized sub-agents:
 
