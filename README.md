@@ -16,12 +16,15 @@ Perspective Prism is an AI agent that acts as an automated, multi-perspective fa
 
 [See detailed architecture](architecture.md)
 
+![Perspective Prism Architecture](assets/img_1764592936221.png)
 Perspective Prism operates as a pipeline of specialized sub-agents:
 
 1.  **Claim Extractor**: Uses an LLM to parse YouTube transcripts and identify distinct, verifiable claims.
 2.  **Evidence Retriever**: Dynamically queries the Google Custom Search API to find external evidence.
 3.  **Analysis Engine**: Synthesizes the claim and retrieved evidence to determine support/refutation and detects bias.
 4.  **Truth Profiler**: Aggregates these insights into a user-friendly "Truth Profile".
+
+
 
 ## 📊 Agent Evaluation
 
