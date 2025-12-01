@@ -2,19 +2,45 @@
 
 An advanced AI agent that processes YouTube video transcripts to analyze claims across multiple perspectives, detect bias and potential deception, and output a rich "truth profile" per claim.
 
-## 🚀 Features
+## 🧐 Problem Statement
 
-- **Claim Extraction**: Automatically fetches and parses YouTube transcripts to identify key claims.
-- **Multi-Perspective Analysis**: Evaluates claims against "Mainstream", "Scientific", and "Conspiratorial" viewpoints using Google Custom Search.
-- **Bias & Deception Detection**: Uses LLMs to identify logical fallacies, emotional manipulation, and political bias.
-- **Truth Profiling**: Generates a comprehensive report with confidence scores and supporting evidence.
-- **🛡️ Robust Security**: Built-in input sanitization to prevent prompt injection attacks and ensure safe LLM interactions.
+In the age of algorithmic feeds, users are often trapped in filter bubbles where they only encounter information that reinforces their existing beliefs. Misinformation spreads rapidly on video platforms like YouTube, where verifying claims requires significant effort (cross-referencing sources, checking scientific consensus, etc.). Most users simply don't have the time or expertise to fact-check every video they watch.
+
+## 💡 Solution Architecture
+
+Perspective Prism is an AI agent that acts as an automated, multi-perspective fact-checker.
+
+![Architecture Diagram](architecture.md)
+
+It operates as a pipeline of specialized sub-agents:
+
+1.  **Claim Extractor**: Uses an LLM to parse YouTube transcripts and identify distinct, verifiable claims.
+2.  **Evidence Retriever**: Dynamically queries the Google Custom Search API to find external evidence.
+3.  **Analysis Engine**: Synthesizes the claim and retrieved evidence to determine support/refutation and detects bias.
+4.  **Truth Profiler**: Aggregates these insights into a user-friendly "Truth Profile".
+
+## 📊 Agent Evaluation
+
+We include a benchmark script to evaluate the agent's performance on a set of test videos.
+Run the evaluation:
+
+```bash
+python .benchmarks/evaluate_agents.py
+```
+
+This script measures:
+
+- **Success Rate**: Percentage of successful analyses.
+- **Latency**: Time taken for extraction and analysis.
+- **Output Quality**: Basic validation of the generated Truth Profile.
 
 ## 🛠️ Tech Stack
 
-- **Backend**: FastAPI, Python 3.13, OpenAI API, Google Custom Search API
+- **Backend**: FastAPI, Python 3.13
+- **AI/LLM**: OpenAI API, Google Gemini API (Bonus)
+- **Search**: Google Custom Search API
 - **Frontend**: React, TypeScript, Vite, Tailwind CSS
-- **Security**: Custom input sanitizer with pattern detection and strict length enforcement
+- **Security**: Custom input sanitizer with pattern detection
 
 ## 📋 Prerequisites
 
@@ -28,27 +54,31 @@ An advanced AI agent that processes YouTube video transcripts to analyze claims 
 ### Backend
 
 1. Navigate to the backend directory:
+
    ```bash
    cd backend
    ```
 
 2. Create and activate a virtual environment:
+
    ```bash
    python3 -m venv venv
    source venv/bin/activate
    ```
 
 3. Install dependencies:
+
    ```bash
    pip install -r requirements.txt
    ```
 
 4. Configure environment variables:
    Copy `.env.example` to `.env` and fill in your keys:
+
    ```bash
    cp .env.example .env
    ```
-   
+
    Required variables:
    - `OPENAI_API_KEY`: Your OpenAI API key
    - `GOOGLE_API_KEY`: Google Custom Search JSON API key
@@ -64,20 +94,24 @@ An advanced AI agent that processes YouTube video transcripts to analyze claims 
 ### Frontend
 
 1. Navigate to the frontend directory:
+
    ```bash
    cd frontend
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Configure environment variables:
    Copy `.env.example` to `.env`:
+
    ```bash
    cp .env.example .env
    ```
+
    Ensure `VITE_API_URL` matches your backend URL (default: `http://localhost:8000`).
 
 4. Run the development server:
