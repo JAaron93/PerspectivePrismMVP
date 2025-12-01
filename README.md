@@ -1,4 +1,4 @@
-# Perspective Prism MVP
+# Perspective Prism
 
 An advanced AI agent that processes YouTube video transcripts to analyze claims across multiple perspectives, detect bias and potential deception, and output a rich "truth profile" per claim.
 
@@ -8,7 +8,7 @@ An advanced AI agent that processes YouTube video transcripts to analyze claims 
 
 In the age of algorithmic feeds, users are often trapped in filter bubbles where they only encounter information that reinforces their existing beliefs. Misinformation spreads rapidly on video platforms like YouTube, where verifying claims requires significant effort (cross-referencing sources, checking scientific consensus, etc.). Most users simply don't have the time or expertise to fact-check every video they watch.
 
-## 💡 Solution Statement
+## ✨ Solution Statement
 
 Perspective Prism is an AI agent that acts as an automated, multi-perspective fact-checker. It analyzes YouTube video transcripts to identify verifiable claims, retrieves supporting or refuting evidence from trusted sources, evaluates bias and credibility, and presents a comprehensive "Truth Profile" to help users make informed decisions about the content they consume.
 
@@ -24,7 +24,23 @@ Perspective Prism operates as a pipeline of specialized sub-agents:
 3.  **Analysis Engine**: Synthesizes the claim and retrieved evidence to determine support/refutation and detects bias.
 4.  **Truth Profiler**: Aggregates these insights into a user-friendly "Truth Profile".
 
-## 🔄 Conclusion
+## 🦾 Essential Tools and Utilities
+
+The Perspective Prism multi-agent system is equipped with custom-built tools designed to ensure security, quality, and effectiveness throughout the analysis pipeline.
+
+### Input Sanitizer (`input_sanitizer.py`)
+
+A critical security tool that protects against Large Language Model (LLM) prompt injection attacks. Before any user-provided data (YouTube URLs, transcript text, or claims) is interpolated into LLM prompts, the sanitizer performs comprehensive validation. It detects and blocks suspicious patterns like `ignore previous instructions`, `system:`, `<|im_start|>`, and other common injection techniques. The tool employs multiple defense layers: control character detection, pattern matching against a curated blocklist, special character escaping, and strict length enforcement. Additionally, it wraps user data in clearly delimited sections using `===USER DATA START===` and `===USER DATA END===` markers, making it explicit to the LLM where untrusted input begins and ends. This proactive approach prevents malicious actors from manipulating the agent's behavior or extracting sensitive system prompts.
+
+### Agent Evaluator (`evaluate_agents.py`)
+
+A benchmarking framework that validates the entire analysis pipeline against a curated set of test videos containing verifiable factual claims. The evaluator measures three key performance metrics: **Success Rate** (percentage of successful analyses without errors), **Latency** (time breakdown for claim extraction vs. evidence analysis), and **Output Quality** (validation that Truth Profiles contain properly structured perspectives and bias indicators). It runs automated tests on videos spanning diverse topics—TED Talks on data science, Bill Gates' pandemic preparedness presentation, and NASA's Artemis program announcements—ensuring the system can handle scientific, public health, and engineering claims. The benchmark script integrates directly with the `ClaimExtractor`, `EvidenceRetriever`, and `AnalysisService` to measure end-to-end performance, providing detailed timing breakdowns and failure diagnostics to support continuous improvement.
+
+### Evidence Retriever (`evidence_retriever.py`)
+
+A sophisticated multi-perspective search tool that queries the Google Custom Search API to gather external evidence for each extracted claim. Rather than performing a single generic search, the Evidence Retriever executes **perspective-specific queries**—tailoring search terms to find scientific studies (`site:nih.gov OR site:nature.com`), journalistic sources (`site:nytimes.com OR site:reuters.com`), and partisan viewpoints. It handles API quota limits gracefully, implements exponential backoff retry logic for transient failures, and normalizes search results into a consistent format (title, snippet, URL). The retriever also performs relevance filtering, discarding results that don't contain claim-related keywords, ensuring the `AnalysisService` receives only high-quality evidence. This tool is essential for transforming subjective claims into fact-checkable assertions backed by authoritative external sources.
+
+## 🏁 Conclusion
 
 Perspective Prism addresses the core problem of filter bubbles and misinformation by automating the fact-checking process that most users don't have time to perform manually. When a user submits a YouTube video URL, the system retrieves the video's transcript and initiates a sophisticated multi-agent workflow. The **Claim Extractor** agent uses large language models to intelligently parse the transcript, identifying specific claims that can be verified rather than opinions or subjective statements. Each extracted claim is then passed to the **Evidence Retriever** agent, which conducts targeted searches across trusted external sources using the Google Custom Search API. The **Analysis Engine** synthesizes this evidence with the original claim, evaluating the degree of support or refutation while simultaneously detecting logical fallacies, emotional manipulation tactics, and other bias indicators. Finally, the **Truth Profiler** aggregates these multi-perspective analyses into a comprehensive report that presents users with a balanced view—showing not just whether claims are true or false, but _how_ different perspectives (scientific, journalistic, partisan) interpret the same information. This automated pipeline transforms hours of manual research into seconds of computational analysis, empowering users to escape their filter bubbles and make informed decisions about the content they consume.
 
@@ -32,7 +48,7 @@ Perspective Prism addresses the core problem of filter bubbles and misinformatio
 
 In an era where video content increasingly shapes public opinion and political discourse, the ability to quickly verify claims and detect bias is not just convenient—it's essential for a healthy democracy. Perspective Prism democratizes access to multi-perspective fact-checking, a capability typically reserved for professional journalists and researchers. By surfacing bias indicators and presenting evidence from multiple viewpoints, the system helps users develop critical thinking skills and resist manipulation. The project demonstrates how AI agents can be harnessed not to replace human judgment, but to augment it with comprehensive, rapid analysis that would be impractical to conduct manually.
 
-## Value Statement
+## 🗣️ Value Statement
 
 I used Perspective Prism to analyze claims from a political commentary video, discovering that 3 out of 7 major claims lacked credible supporting evidence and exhibited strong emotional manipulation tactics. Armed with this Truth Profile, I was able to disuade an acquaintance from taking the video's claims at face value, which would have otherwise reinforced their existing beliefs.
 
@@ -206,8 +222,29 @@ The project is organized as follows:
   - `src/services/`: API client for communicating with the backend
 - **.benchmarks/**: Contains the agent evaluation framework
   - `evaluate_agents.py`: Benchmark script measuring success rate, latency, and output quality
-- **chrome-extension/**: YouTube Chrome Extension (planned future enhancement)
-  - Contains manifest, content scripts, background service worker, and UI components for browser integration
+- **chrome-extension/**: YouTube Chrome Extension (Manifest V3) - Nearly Complete Implementation
+  - **Core Components**:
+    - `manifest.json`: Extension configuration with permissions, content scripts, and background service worker
+    - `background.js`: Service worker handling message passing, API requests, and extension lifecycle
+    - `content.js`: Injected script that detects YouTube videos, injects analysis button, and renders results panel
+    - `client.js`: API client with async job polling, retry logic, cache management, and MV3 persistence
+  - **UI Pages**:
+    - `popup.html/js/css`: Extension popup showing analysis status and cache statistics
+    - `options.html/js/css`: Settings page for backend URL configuration, cache controls, and privacy settings
+    - `welcome.html/js/css`: Onboarding page for first-time users
+    - `privacy.html`: Privacy policy with data handling disclosure
+  - **Utilities**:
+    - `config.js`: Configuration validation and management
+    - `consent.js`: Privacy consent flow with versioning support
+    - `quota-manager.js`: Chrome storage quota monitoring and LRU cache eviction
+    - `metrics-tracker.js`: Performance metrics collection (cache hits, API latency)
+    - `memory-monitor.js`: Memory profiling for extension performance
+    - `panel-styles.js`: Shadow DOM styling for analysis panel (dark/light theme support)
+  - **Testing Infrastructure**:
+    - `tests/unit/`: Vitest unit tests for cache, config, and API client
+    - `tests/integration/`: Integration tests for end-to-end flows
+    - `tests/manual_qa/`: Manual QA test guides and regression scenarios
+    - Multiple test HTML pages for component validation and performance benchmarking
 
 ## 🔄 Workflow
 
