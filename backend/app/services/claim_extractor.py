@@ -118,11 +118,12 @@ class ClaimExtractor:
             segments = []
             for item in fetched_transcript:
                 try:
+                    # FetchedTranscriptSnippet objects have .text, .start, .duration attributes
                     segments.append(
                         TranscriptSegment(
-                            text=item.get("text", ""),
-                            start=item.get("start", 0.0),
-                            duration=item.get("duration", 0.0),
+                            text=item.text if hasattr(item, 'text') else "",
+                            start=item.start if hasattr(item, 'start') else 0.0,
+                            duration=item.duration if hasattr(item, 'duration') else 0.0,
                         )
                     )
                 except (KeyError, TypeError) as e:

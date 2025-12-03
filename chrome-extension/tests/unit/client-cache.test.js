@@ -60,13 +60,13 @@ describe("PerspectivePrismClient - Cache Operations", () => {
 
   describe("checkCache()", () => {
     it("should return null for cache miss", async () => {
-      const result = await client.checkCache("abc123def45");
+      const result = await client.checkCache("abcdefghijk");
       expect(result).toBeNull();
     });
 
     it("should return data for cache hit with valid entry", async () => {
       const testData = {
-        video_id: "abc123def45",
+        video_id: "abcdefghijk",
         claims: [],
         metadata: { analyzed_at: new Date().toISOString() },
       };
@@ -78,15 +78,15 @@ describe("PerspectivePrismClient - Cache Operations", () => {
         data: testData,
       };
 
-      mockStorage["cache_abc123def45"] = cacheEntry;
+      mockStorage["cache_abcdefghijk"] = cacheEntry;
 
-      const result = await client.checkCache("abc123def45");
+      const result = await client.checkCache("abcdefghijk");
       expect(result).toEqual(testData);
     });
 
     it("should return null for expired entry", async () => {
       const testData = {
-        video_id: "abc123def45",
+        video_id: "abcdefghijk",
         claims: [],
         metadata: { analyzed_at: new Date().toISOString() },
       };
@@ -99,13 +99,13 @@ describe("PerspectivePrismClient - Cache Operations", () => {
         data: testData,
       };
 
-      mockStorage["cache_abc123def45"] = cacheEntry;
+      mockStorage["cache_abcdefghijk"] = cacheEntry;
 
-      const result = await client.checkCache("abc123def45");
+      const result = await client.checkCache("abcdefghijk");
       expect(result).toBeNull();
 
       // Should have removed expired entry
-      expect(mockStorage["cache_abc123def45"]).toBeUndefined();
+      expect(mockStorage["cache_abcdefghijk"]).toBeUndefined();
     });
 
     it("should migrate old schema versions", async () => {
@@ -114,22 +114,22 @@ describe("PerspectivePrismClient - Cache Operations", () => {
         timestamp: Date.now(),
         lastAccessed: Date.now(),
         data: {
-          video_id: "abc123def45",
+          video_id: "abcdefghijk",
           claims: [],
           metadata: { analyzed_at: new Date().toISOString() },
         },
       };
 
-      mockStorage["cache_abc123def45"] = v0Entry;
+      mockStorage["cache_abcdefghijk"] = v0Entry;
 
-      const result = await client.checkCache("abc123def45");
+      const result = await client.checkCache("abcdefghijk");
 
       // Should return migrated data
       expect(result).toBeDefined();
-      expect(result.video_id).toBe("abc123def45");
+      expect(result.video_id).toBe("abcdefghijk");
 
       // Should have saved migrated version
-      const saved = mockStorage["cache_abc123def45"];
+      const saved = mockStorage["cache_abcdefghijk"];
       expect(saved.schemaVersion).toBe(1);
     });
 
@@ -137,23 +137,23 @@ describe("PerspectivePrismClient - Cache Operations", () => {
       const futureEntry = {
         schemaVersion: 999,
         timestamp: Date.now(),
-        data: { video_id: "abc123def45" },
+        data: { video_id: "abcdefghijk" },
       };
 
-      mockStorage["cache_abc123def45"] = futureEntry;
+      mockStorage["cache_abcdefghijk"] = futureEntry;
 
-      const result = await client.checkCache("abc123def45");
+      const result = await client.checkCache("abcdefghijk");
       expect(result).toBeNull();
 
       // Should have removed incompatible entry
-      expect(mockStorage["cache_abc123def45"]).toBeUndefined();
+      expect(mockStorage["cache_abcdefghijk"]).toBeUndefined();
     });
   });
 
   describe("saveToCache()", () => {
     it("should store entry with correct structure", async () => {
       const testData = {
-        video_id: "abc123def45",
+        video_id: "abcdefghijk",
         claims: [
           {
             claim_text: "Test claim",
@@ -171,9 +171,9 @@ describe("PerspectivePrismClient - Cache Operations", () => {
         metadata: { analyzed_at: new Date().toISOString() },
       };
 
-      await client.saveToCache("abc123def45", testData);
+      await client.saveToCache("abcdefghijk", testData);
 
-      const saved = mockStorage["cache_abc123def45"];
+      const saved = mockStorage["cache_abcdefghijk"];
       expect(saved).toBeDefined();
       expect(saved.data).toEqual(testData);
       expect(saved.timestamp).toBeDefined();
@@ -182,14 +182,14 @@ describe("PerspectivePrismClient - Cache Operations", () => {
 
     it("should add schemaVersion to entry", async () => {
       const testData = {
-        video_id: "abc123def45",
+        video_id: "abcdefghijk",
         claims: [],
         metadata: { analyzed_at: new Date().toISOString() },
       };
 
-      await client.saveToCache("abc123def45", testData);
+      await client.saveToCache("abcdefghijk", testData);
 
-      const saved = mockStorage["cache_abc123def45"];
+      const saved = mockStorage["cache_abcdefghijk"];
       expect(saved.schemaVersion).toBe(1);
     });
 
@@ -212,13 +212,13 @@ describe("PerspectivePrismClient - Cache Operations", () => {
       }
 
       const largeData = {
-        video_id: "abc123def45",
+        video_id: "abcdefghijk",
         claims: largeClaims,
         metadata: { analyzed_at: new Date().toISOString() },
       };
 
       await expect(
-        client.saveToCache("abc123def45", largeData),
+        client.saveToCache("abcdefghijk", largeData),
       ).rejects.toThrow();
     });
 
@@ -230,10 +230,10 @@ describe("PerspectivePrismClient - Cache Operations", () => {
       };
 
       // Should not throw, but should not cache invalid data
-      await client.saveToCache("abc123def45", invalidData);
+      await client.saveToCache("abcdefghijk", invalidData);
 
       // Invalid data should not be cached
-      expect(mockStorage["cache_abc123def45"]).toBeUndefined();
+      expect(mockStorage["cache_abcdefghijk"]).toBeUndefined();
     });
   });
 
@@ -333,12 +333,12 @@ describe("PerspectivePrismClient - Cache Operations", () => {
 
   describe("remove()", () => {
     it("should remove specific cache entry", async () => {
-      mockStorage["cache_abc123def45"] = { data: {} };
+      mockStorage["cache_abcdefghijk"] = { data: {} };
       mockStorage["cache_xyz789ghi01"] = { data: {} };
 
-      await client.remove("abc123def45");
+      await client.remove("abcdefghijk");
 
-      expect(mockStorage["cache_abc123def45"]).toBeUndefined();
+      expect(mockStorage["cache_abcdefghijk"]).toBeUndefined();
       expect(mockStorage["cache_xyz789ghi01"]).toBeDefined();
     });
   });
@@ -388,7 +388,7 @@ describe("PerspectivePrismClient - Cache Operations", () => {
         timestamp: Date.now(),
         lastAccessed: Date.now(),
         data: {
-          video_id: "abc123def45",
+          video_id: "abcdefghijk",
           claims: [],
           metadata: { analyzed_at: new Date().toISOString() },
         },
@@ -405,7 +405,7 @@ describe("PerspectivePrismClient - Cache Operations", () => {
         schemaVersion: 1,
         timestamp: Date.now(),
         data: {
-          video_id: "abc123def45",
+          video_id: "abcdefghijk",
           claims: [],
           metadata: { analyzed_at: new Date().toISOString() },
         },
@@ -421,7 +421,7 @@ describe("PerspectivePrismClient - Cache Operations", () => {
         timestamp: Date.now(),
         data: {
           // Missing claims and metadata - invalid structure
-          video_id: "abc123def45",
+          video_id: "abcdefghijk",
         },
       };
 
@@ -436,7 +436,7 @@ describe("PerspectivePrismClient - Cache Operations", () => {
         schemaVersion: 1,
         timestamp: Date.now(),
         data: {
-          video_id: "abc123def45",
+          video_id: "abcdefghijk",
           claims: [],
           metadata: { analyzed_at: new Date().toISOString() },
         },

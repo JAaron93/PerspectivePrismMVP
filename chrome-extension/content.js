@@ -925,6 +925,7 @@ function injectButton() {
   // Selectors from design doc
   const selectors = [
     "#top-level-buttons-computed", // Primary: Action buttons bar
+    "#actions", // Secondary: Common container for actions
     "#menu-container", // Fallback 1: Alternative menu container
     "#info-contents", // Fallback 2: Metadata area
   ];
@@ -953,7 +954,7 @@ function injectButton() {
       (metrics.bySelector[usedSelector] || 0) + 1;
     saveMetrics();
   } else {
-    console.warn(
+    console.debug(
       "[Perspective Prism] No suitable container found for button injection. Retrying later.",
     );
     metrics.failures++;
@@ -1249,7 +1250,6 @@ function showSetupNotification() {
       removePanel();
       setButtonState('idle');
     });
-  }
   }
   
   if (viewWelcomeBtn) {
@@ -2012,9 +2012,12 @@ function removePanel() {
       previouslyFocusedElement &&
       document.contains(previouslyFocusedElement)
     ) {
+      const elementToFocus = previouslyFocusedElement;
       // Small delay to ensure DOM is updated
       setTimeout(() => {
-        previouslyFocusedElement.focus();
+        if (elementToFocus && document.contains(elementToFocus)) {
+          elementToFocus.focus();
+        }
       }, 50);
     }
 
@@ -2047,29 +2050,14 @@ function setupObservers() {
     observer.disconnect();
   }
 
-  // Try to observe specific container first
-  const specificContainer =
-    document.querySelector("#top-level-buttons-computed") ||
-    document.querySelector("#menu-container");
-
-  if (specificContainer) {
-    console.log("[Perspective Prism] Observing specific container");
-    observer = new MutationObserver(handleMutations);
-    observer.observe(specificContainer, {
-      childList: true,
-      subtree: false, // Performance optimization
-    });
-  } else {
-    console.log("[Perspective Prism] Observing document body (fallback)");
-    observer = new MutationObserver(handleMutations);
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true, // Necessary for fallback
-    });
-  }
-}
-
-  }
+  // Always observe document body to catch all re-renders and navigation events
+  // This is more robust than observing specific containers which might be replaced
+  console.log("[Perspective Prism] Setting up global observer");
+  observer = new MutationObserver(handleMutations);
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
 }
 
 // --- Cleanup & Navigation ---
